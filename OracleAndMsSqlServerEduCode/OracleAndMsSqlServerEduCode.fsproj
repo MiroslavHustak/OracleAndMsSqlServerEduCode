@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <Compile Include="Helpers\Helpers.fs" />
+    <Compile Include="MsSqlServerEduCode\StoredProcedures.fs" />
+    <Compile Include="MsSqlServerEduCode\Views.fs" />
     <Compile Include="MsSqlServerEduCode\ScalarFunctions.fs" />
     <Compile Include="MsSqlServerEduCode\ITVFs.fs" />
     <Compile Include="MsSqlServerEduCode\CTEs.fs" />

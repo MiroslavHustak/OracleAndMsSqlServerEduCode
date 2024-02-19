@@ -21,6 +21,8 @@ open DerivedTablesTSQL
 open WindowFunctionsTSQL
 open ScalarFunctionsTSQL
 open ITVFsTSQL
+open ViewsTSQL
+open StoredProceduresTSQL
 
 module Program = 
 
@@ -92,6 +94,8 @@ module Program =
     //createScalarFunctionTSQL getConnectionTSQL closeConnectionTSQL |> ignore
     //callScalarFunctionTSQL getConnectionTSQL closeConnectionTSQL |> ignore
     //createITVF getConnectionTSQL closeConnectionTSQL |> ignore
-    callITVF getConnectionTSQL closeConnectionTSQL |> ignore
-
+    //callITVF getConnectionTSQL closeConnectionTSQL |> ignore
+    //callView getConnectionTSQL closeConnectionTSQL |> ignore
+    //executeStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
+    createStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
     
