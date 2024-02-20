@@ -1,4 +1,4 @@
-﻿module ITVFsTSQL //buzzword RETURN, strucna charakteristika: vraci virtual table (result set)
+﻿module ITVFsTSQL //buzzword FUNCTION, RETURN, strucna charakteristika: vraci virtual table (result set)
 
 open System
 open System.Data.SqlClient

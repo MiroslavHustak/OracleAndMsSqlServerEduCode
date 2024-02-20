@@ -2,6 +2,9 @@
 
     (*
     -- Oracle SQL Developer
+
+    PL/SQL (v T-SQL nesu records)
+
     DECLARE
 
       TYPE ProductionOrderRecord IS RECORD (

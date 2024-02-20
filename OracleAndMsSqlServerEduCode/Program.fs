@@ -23,6 +23,7 @@ open ScalarFunctionsTSQL
 open ITVFsTSQL
 open ViewsTSQL
 open StoredProceduresTSQL
+open TriggersTSQL
 
 module Program = 
 
@@ -86,7 +87,7 @@ module Program =
     //insertOperators getConnectionTSQL closeConnectionTSQL |> ignore
     //insertMachines getConnectionTSQL closeConnectionTSQL |> ignore
     //insertProductionOrder getConnectionTSQL closeConnectionTSQL |> ignore
-    //updateProductionOrder getConnectionTSQL closeConnectionTSQL 
+    updateProductionOrder getConnectionTSQL closeConnectionTSQL 
 
     //selectValuesDT getConnectionTSQL closeConnectionTSQL |> ignore
     //selectValuesWFTSQL getConnectionTSQL closeConnectionTSQL |> ignore
@@ -97,5 +98,6 @@ module Program =
     //callITVF getConnectionTSQL closeConnectionTSQL |> ignore
     //callView getConnectionTSQL closeConnectionTSQL |> ignore
     //executeStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
-    createStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
+    //createStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
+    //createTriggerTSQL getConnectionTSQL closeConnectionTSQL |> ignore 
     

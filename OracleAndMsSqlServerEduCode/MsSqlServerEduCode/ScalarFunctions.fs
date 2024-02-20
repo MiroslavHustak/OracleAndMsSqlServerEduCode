@@ -1,4 +1,4 @@
-﻿module ScalarFunctionsTSQL //buzzword RETURN, strucna charakteristika: vraci hodnotu (scalar value)
+﻿module ScalarFunctionsTSQL //buzzword FUNCTION, RETURN, strucna charakteristika: vraci hodnotu (scalar value)
 
 open FsToolkit.ErrorHandling
 open System.Data.SqlClient

@@ -1,4 +1,4 @@
-﻿module StoredProceduresTSQL
+﻿module StoredProceduresTSQL //buzzword PROCEDURE, strucna charakteristika:  kod je ulozeny, na rozdil od views ale obsahuje hlavne ne queries, ale logiku
 
 open System
 open System.Data.SqlClient

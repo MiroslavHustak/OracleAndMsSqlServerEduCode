@@ -1,4 +1,4 @@
-﻿module ViewsTSQL
+﻿module ViewsTSQL //buzzword VIEW, strucna charakteristika:  kod je ulozeny, neco jako CTE nebo derived table
 
 open System
 open System.Data.SqlClient
