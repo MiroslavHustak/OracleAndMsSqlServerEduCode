@@ -47,7 +47,8 @@ module Program =
         connection.Dispose()
 
     //localhost
-    let [<Literal>] private connStringTSQL = @"Data Source=localhost\SQLEXPRESS;Initial Catalog=Test_User_MSSQLS;Integrated Security=True"
+    //let [<Literal>] private connStringTSQL = @"Data Source=localhost\SQLEXPRESS;Initial Catalog=Test_User_MSSQLS;Integrated Security=True"
+    let [<Literal>] private connStringTSQL = @"Data Source=localhost\SQLEXPRESS;Initial Catalog=Dictionary_MSSQLS;Integrated Security=True"
 
     //shall be in a tryWith block
     let private getConnectionTSQL () =        
@@ -107,5 +108,5 @@ module Program =
     printfn "%A" <| querySteelStructuresTSQL getConnectionTSQL closeConnectionTSQL 
     printfn "%A" <| queryWeldsTSQL getConnectionTSQL closeConnectionTSQL  
     printfn "%A" <| queryBlastFurnacesTSQL getConnectionTSQL closeConnectionTSQL  
-    printfn "%A" <| selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL  
+    //printfn "%A" <| selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL  
     

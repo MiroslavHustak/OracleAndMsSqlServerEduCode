@@ -37,8 +37,8 @@ let internal querySteelStructuresTSQL getConnection closeConnection =
         CREATE SEQUENCE EACH_TABLE_SEQUENCE
         START WITH 1
         INCREMENT BY 1
-        NOCACHE
-        NOCYCLE;
+        NO CACHE
+        NO CYCLE;
         "       
          
     let queryInsert = 
@@ -84,7 +84,7 @@ let internal querySteelStructuresTSQL getConnection closeConnection =
     let list = 
         [
             "Steel_Structures"
-            "ID_STEEL"
+            "ID_Steel"
         ]
     
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new steel structures.xlsx"
@@ -103,26 +103,26 @@ let internal queryWeldsTSQL getConnection closeConnection =
         END;
         "
 
-    let queryDeleteAll = "DELETE FROM WELDS"
+    let queryDeleteAll = "DELETE FROM Welds"
    
     let queryCreateSequence = 
         "
         CREATE SEQUENCE EACH_TABLE_SEQUENCE
         START WITH 1
         INCREMENT BY 1
-        NOCACHE
-        NOCYCLE;
+        NO CACHE
+        NO CYCLE;
         "       
      
     let queryInsert = 
          "
-         INSERT INTO WELDS (English, Czech, Note) 
+         INSERT INTO Welds (English, Czech, Note) 
          VALUES (@English, @Czech, @Note);
          "
 
     let queryUpdate1 =
         "
-        UPDATE WELDS
+        UPDATE Welds
         SET Note = NULL
         WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
@@ -133,13 +133,13 @@ let internal queryWeldsTSQL getConnection closeConnection =
         DECLARE @v_count INT;
 
         SELECT TOP 1 @v_primary_key_value = ID_WELD
-        FROM WELDS
+        FROM Welds
         WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
 
         IF @v_primary_key_value IS NOT NULL
         BEGIN
-            DELETE FROM WELDS
-            WHERE ID_WELD = @v_primary_key_value;
+            DELETE FROM Welds
+            WHERE ID_Weld = @v_primary_key_value;
         END;
         -- TODO: Handle the case when no row is found
         "
@@ -156,8 +156,8 @@ let internal queryWeldsTSQL getConnection closeConnection =
 
     let list = 
         [
-            "WELDS"
-            "ID_WELD"
+            "Welds"
+            "ID_Weld"
         ]
 
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new welding.xlsx"
@@ -176,26 +176,26 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         END;
         "
 
-    let queryDeleteAll = "DELETE FROM BLAST_FURNACES"
+    let queryDeleteAll = "DELETE FROM Blast_Furnaces"
    
     let queryCreateSequence = 
         "
         CREATE SEQUENCE EACH_TABLE_SEQUENCE
         START WITH 1
         INCREMENT BY 1
-        NOCACHE
-        NOCYCLE;
+        NO CACHE
+        NO CYCLE;
         "       
      
     let queryInsert = 
          "
-         INSERT INTO BLAST_FURNACES (English, Czech, Note) 
+         INSERT INTO Blast_Furnaces (English, Czech, Note) 
          VALUES (@English, @Czech, @Note);
          "
 
     let queryUpdate1 =
         "
-        UPDATE BLAST_FURNACES
+        UPDATE Blast_Furnaces
         SET Note = NULL
         WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
@@ -206,12 +206,12 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         DECLARE @v_count INT;
 
         SELECT TOP 1 @v_primary_key_value = ID_BF
-        FROM BLAST_FURNACES
+        FROM Blast_Furnaces
         WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
 
         IF @v_primary_key_value IS NOT NULL
         BEGIN
-            DELETE FROM BLAST_FURNACES
+            DELETE FROM Blast_Furnaces
             WHERE ID_BF = @v_primary_key_value;
         END;
         -- TODO: Handle the case when no row is found
@@ -229,7 +229,7 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
 
     let list = 
         [
-            "BLAST_FURNACES"
+            "Blast_Furnaces"
             "ID_BF"
         ]
 
@@ -263,6 +263,7 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         END;
     END;
     
+    USE [Dictionary_MSSQLS]
     -- Create sequence
     CREATE SEQUENCE Each_Table_Sequence
         START WITH 1
@@ -273,30 +274,43 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
     USE [Dictionary_MSSQLS]
     
     -- Create table
+    -- Drop the existing table if it exists
+    IF OBJECT_ID('Blast_Furnaces', 'U') IS NOT NULL
+        DROP TABLE Blast_Furnaces;
+    
+    -- Create the table with modifications
     CREATE TABLE Blast_Furnaces
     (
         ID_BF INT PRIMARY KEY NOT NULL,
-        English NVARCHAR(100),
-        Czech NVARCHAR(100),
-        Note NVARCHAR(1000)
+        English NVARCHAR(100) NULL,
+        Czech NVARCHAR(100) NULL,
+        Note NVARCHAR(1000) NULL
     );
     
-    -- Create table
+    -- Drop the existing table if it exists
+    IF OBJECT_ID('Steel_Structures', 'U') IS NOT NULL
+        DROP TABLE Steel_Structures;
+    
+    -- Create the table with modifications
     CREATE TABLE Steel_Structures
     (
         ID_Steel INT PRIMARY KEY NOT NULL,
-        English NVARCHAR(100),
-        Czech NVARCHAR(100),
-        Note NVARCHAR(1000)
+        English NVARCHAR(100) NULL,
+        Czech NVARCHAR(100) NULL,
+        Note NVARCHAR(1000) NULL
     );
     
-    -- Create table
+    -- Drop the existing table if it exists
+    IF OBJECT_ID('Welds', 'U') IS NOT NULL
+        DROP TABLE Welds;
+    
+    -- Create the table with modifications
     CREATE TABLE Welds
     (
         ID_Weld INT PRIMARY KEY NOT NULL,
-        English NVARCHAR(100),
-        Czech NVARCHAR(100),
-        Note NVARCHAR(1000)
+        English NVARCHAR(100) NULL,
+        Czech NVARCHAR(100) NULL,
+        Note NVARCHAR(1000) NULL
     );
     
     -- To use the sequence for automatic numbering
@@ -310,6 +324,28 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         UPDATE Steel_Structures
         SET ID_Steel = NEXT VALUE FOR Each_Table_Sequence
         WHERE ID_Steel IS NULL;
+    END;
+
+    CREATE TRIGGER Welds_Trigger
+    ON Welds
+    AFTER INSERT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        UPDATE Welds
+        SET ID_Weld = NEXT VALUE FOR Each_Table_Sequence
+        WHERE ID_Weld IS NULL;
+    END;
+
+    CREATE TRIGGER BF_Trigger
+    ON Blast_Furnaces
+    AFTER INSERT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        UPDATE Blast_Furnaces
+        SET ID_BF= NEXT VALUE FOR Each_Table_Sequence
+        WHERE ID_BF IS NULL;
     END;
     
     -- Update queries
@@ -327,22 +363,22 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
     GO
     
     CREATE PROCEDURE DELETE_NULL_ROWS
-        @p_table_name NVARCHAR(100),
-        @p_primary_key_column NVARCHAR(100)
+    @p_table_name NVARCHAR(100),
+    @p_primary_key_column NVARCHAR(100)
     AS
     BEGIN
         DECLARE @v_primary_key_value INT;
         DECLARE @v_sql_query NVARCHAR(1000); -- Adjust the size based on your needs
-    
+
         -- Build the dynamic SQL query with a parameter for the table name
         SET @v_sql_query =
             'SELECT ' + @p_primary_key_column +
             ' FROM ' + @p_table_name +
             ' WHERE English IS NULL AND Czech IS NULL AND Note IS NULL';
-    
+
         -- Find a row meeting the conditions where all non-primary key columns are NULL
         EXEC sp_executesql @v_sql_query, N'@v_primary_key_value INT OUTPUT', @v_primary_key_value OUTPUT;
-    
+
         -- Check if a row meeting the conditions is found
         IF @v_primary_key_value IS NOT NULL
         BEGIN
@@ -350,15 +386,21 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
             SET @v_sql_query =
                 'DELETE FROM ' + @p_table_name +
                 ' WHERE ' + @p_primary_key_column + ' = @v_primary_key_value';
-    
+
             -- Delete the row using the dynamically determined primary key value
             EXEC sp_executesql @v_sql_query, N'@v_primary_key_value INT', @v_primary_key_value;
-        END;
+        END
         ELSE
             -- TODO: Handle the case when no row is found
-            NULL;
-        END IF;
-    END;    
+            BEGIN
+                -- Handle the case when no row is found
+                -- Add your code here to handle the scenario when no row is found
+                -- You can use PRINT or raise an error as needed
+                -- Example: PRINT 'No rows found for deletion.';
+			    PRINT 'No rows found for deletion.';
+            END;
+    END;
+
     
     *)
 

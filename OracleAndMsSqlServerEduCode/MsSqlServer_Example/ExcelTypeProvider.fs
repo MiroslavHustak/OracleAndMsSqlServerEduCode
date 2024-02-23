@@ -80,7 +80,7 @@ let internal insertOrUpdateDictionaryTSQL getConnectionTSQL closeConnectionTSQL 
             closeConnectionTSQL connection
     with
     | ex ->
-          printfn "%s" ex.Message
+          printfn "Error1 %s" ex.Message
 
     //Dynamic SQL is achieved using the EXECUTE IMMEDIATE statement. 
     //The use of bind variables with the USING clause helps prevent SQL injection and provides a way to pass values into the dynamic SQL statement.
