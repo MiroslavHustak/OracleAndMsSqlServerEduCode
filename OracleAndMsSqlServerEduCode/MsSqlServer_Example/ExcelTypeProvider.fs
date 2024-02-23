@@ -6,8 +6,7 @@ open System
 open System.Data
 open FsToolkit.ErrorHandling
 
-//TODO predelat do T-SQL
-open Oracle.ManagedDataAccess.Client
+open System.Data.SqlClient
 
 open Helpers
 
@@ -25,10 +24,10 @@ let private pyramidOfDoom = Builder2
 type private DataTypesTest = ExcelFile<"e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new.xlsx", "AJ-CJ-AJ", HasHeaders = false>
 //kdyz se daji headers, vezme to pouze sloupce s headers
 
-let internal insertOrUpdateDictionary getConnection closeConnection query path list =
+let internal insertOrUpdateDictionaryTSQL getConnectionTSQL closeConnectionTSQL query path list =
 
     try
-        let connection: OracleConnection = getConnection() 
+        let connection: SqlConnection = getConnectionTSQL() 
         
         try  
             //new = an instance of a type, not a class in the traditional object-oriented programming sense
@@ -37,12 +36,12 @@ let internal insertOrUpdateDictionary getConnection closeConnection query path l
             let epRowsCount = rows.Length     
             let listRange = [ 0 .. epRowsCount - 1 ] 
 
-            use cmdDropSequence = new OracleCommand(List.item 0 query, connection)
-            use cmdDeleteAll = new OracleCommand(List.item 1 query, connection)
-            use cmdCreateSequence = new OracleCommand(List.item 2 query, connection)
-            use cmdInsert = new OracleCommand(List.item 3 query, connection)
-            use cmdUpdate1 = new OracleCommand(List.item 4 query, connection)
-            use cmdUpdate2 = new OracleCommand(List.item 5 query, connection)
+            use cmdDropSequence = new SqlCommand(List.item 0 query, connection)
+            use cmdDeleteAll = new SqlCommand(List.item 1 query, connection)
+            use cmdCreateSequence = new SqlCommand(List.item 2 query, connection)
+            use cmdInsert = new SqlCommand(List.item 3 query, connection)
+            use cmdUpdate1 = new SqlCommand(List.item 4 query, connection)
+            use cmdUpdate2 = new SqlCommand(List.item 5 query, connection)
              
             printfn "drop seq %i" <| cmdDropSequence.ExecuteNonQuery() // -1
             
@@ -54,9 +53,9 @@ let internal insertOrUpdateDictionary getConnection closeConnection query path l
             |> List.iter
                 (fun i ->
                         cmdInsert.Parameters.Clear() // Clear parameters for each iteration                                                
-                        cmdInsert.Parameters.Add(":English", OracleDbType.Varchar2).Value <- rows.[i].Column3
-                        cmdInsert.Parameters.Add(":Czech", OracleDbType.Varchar2).Value <- rows.[i].Column5
-                        cmdInsert.Parameters.Add(":Note", OracleDbType.Varchar2).Value <- rows.[i].Column13
+                        cmdInsert.Parameters.AddWithValue("@English", (rows |> Array.item i).Column3) |> ignore
+                        cmdInsert.Parameters.AddWithValue("@Czech", (rows |> Array.item i).Column5) |> ignore
+                        cmdInsert.Parameters.AddWithValue("@Note", (rows |> Array.item i).Column13) |> ignore
 
                         cmdInsert.ExecuteNonQuery() |> ignore //number of affected rows
                 )
@@ -70,14 +69,15 @@ let internal insertOrUpdateDictionary getConnection closeConnection query path l
             (
                 let x = 
                     cmdUpdate2.Parameters.Clear() // Clear parameters for each iteration                                                
-                    cmdUpdate2.Parameters.Add(":table_name", OracleDbType.Varchar2).Value <- List.item 0 list
-                    cmdUpdate2.Parameters.Add(":primary_key_column", OracleDbType.Varchar2).Value <- List.item 1 list
+                    cmdUpdate2.Parameters.AddWithValue("@table_name", List.item 0 list) |> ignore
+                    cmdUpdate2.Parameters.AddWithValue("@primary_key_column", List.item 1 list) |> ignore
+
                     cmdUpdate2.ExecuteNonQuery() 
                 x
             )               
             
         finally
-            closeConnection connection
+            closeConnectionTSQL connection
     with
     | ex ->
           printfn "%s" ex.Message

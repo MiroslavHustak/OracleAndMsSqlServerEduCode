@@ -6,8 +6,7 @@ open System
 open System.Data
 open FsToolkit.ErrorHandling
 
-//TODO predelat do T-SQL
-open Oracle.ManagedDataAccess.Client
+open System.Data.SqlClient
 
 open Helpers
 open ExcelTypeProviderTSQL
@@ -15,24 +14,19 @@ open ExcelTypeProviderTSQL
 let private queryUpdate3 =
     "
     BEGIN
-        DELETE_NULL_ROWS(:table_name, :primary_key_column);
+        EXEC DELETE_NULL_ROWS :table_name, :primary_key_column;
     END;  
     "
 
-let internal querySteelStructures getConnection closeConnection =
+let internal querySteelStructuresTSQL getConnection closeConnection =
         
     let queryDropSequence = 
         "
-        DECLARE
-          sequence_exists NUMBER;
+        DECLARE @sequence_exists INT;
+        SELECT @sequence_exists = COUNT(*) FROM sys.sequences WHERE name = 'EACH_TABLE_SEQUENCE';          
+        IF @sequence_exists > 0
         BEGIN
-              SELECT COUNT(*) INTO sequence_exists FROM user_sequences WHERE sequence_name = 'EACH_TABLE_SEQUENCE';          
-              IF sequence_exists > 0 THEN
-                EXECUTE IMMEDIATE 'DROP SEQUENCE EACH_TABLE_SEQUENCE';
-              END IF;
-            EXCEPTION
-              WHEN OTHERS THEN
-                NULL; -- Ignore errors if the sequence doesn't exist
+            EXEC sp_executesql N'DROP SEQUENCE EACH_TABLE_SEQUENCE';
         END;
         "
 
@@ -44,47 +38,38 @@ let internal querySteelStructures getConnection closeConnection =
         START WITH 1
         INCREMENT BY 1
         NOCACHE
-        NOCYCLE
+        NOCYCLE;
         "       
          
     let queryInsert = 
          "
          INSERT INTO Steel_Structures (English, Czech, Note) 
-         VALUES (:English, :Czech, :Note)
+         VALUES (@English, @Czech, @Note);
          "
 
     let queryUpdate1 =
         "
         UPDATE Steel_Structures
         SET Note = NULL
-        WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0
+        WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
 
-    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS_Steel_Structures
+    let queryUpdate2 = // replaced with a stored procedure named DELETE_NULL_ROWS //_Steel_Structures
         "
-        DECLARE
-            v_primary_key_value Steel_Structures.ID_Steel%TYPE;
-            v_count NUMBER;
+        DECLARE @v_primary_key_value INT;
+        DECLARE @v_count INT;
+
+        SELECT TOP 1 @v_primary_key_value = ID_Steel
+        FROM Steel_Structures
+        WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
+
+        IF @v_primary_key_value IS NOT NULL
         BEGIN
-            -- Find a row meeting the conditions where all non-primary key columns are NULL
-            SELECT ID_Steel
-            INTO v_primary_key_value
-            FROM Steel_Structures
-            WHERE English IS NULL
-              AND Czech IS NULL
-              AND Note IS NULL;
-    
-            -- Check if a row meeting the conditions is found
-            IF v_primary_key_value IS NOT NULL THEN
-                -- Delete the row using the dynamically determined primary key value
-                DELETE FROM Steel_Structures
-                WHERE ID_Steel = v_primary_key_value;
-            ELSE
-                -- TODO: Handle the case when no row is found
-                NULL; 
-           END IF;
+            DELETE FROM Steel_Structures
+            WHERE ID_Steel = @v_primary_key_value;
         END;
-        "         
+        -- TODO: Handle the case when no row is found
+        "
     
     let query = 
         [
@@ -104,22 +89,17 @@ let internal querySteelStructures getConnection closeConnection =
     
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new steel structures.xlsx"
 
-    insertOrUpdateDictionary getConnection closeConnection query path list
+    insertOrUpdateDictionaryTSQL getConnection closeConnection query path list
 
-let internal queryWelds getConnection closeConnection =
+let internal queryWeldsTSQL getConnection closeConnection =
     
     let queryDropSequence = 
         "
-        DECLARE
-          sequence_exists NUMBER;
+        DECLARE @sequence_exists INT;
+        SELECT @sequence_exists = COUNT(*) FROM sys.sequences WHERE name = 'EACH_TABLE_SEQUENCE';          
+        IF @sequence_exists > 0
         BEGIN
-              SELECT COUNT(*) INTO sequence_exists FROM user_sequences WHERE sequence_name = 'EACH_TABLE_SEQUENCE';          
-              IF sequence_exists > 0 THEN
-                EXECUTE IMMEDIATE 'DROP SEQUENCE EACH_TABLE_SEQUENCE';
-              END IF;
-            EXCEPTION
-              WHEN OTHERS THEN
-                NULL; -- Ignore errors if the sequence doesn't exist
+            EXEC sp_executesql N'DROP SEQUENCE EACH_TABLE_SEQUENCE';
         END;
         "
 
@@ -131,46 +111,37 @@ let internal queryWelds getConnection closeConnection =
         START WITH 1
         INCREMENT BY 1
         NOCACHE
-        NOCYCLE
+        NOCYCLE;
         "       
      
     let queryInsert = 
          "
          INSERT INTO WELDS (English, Czech, Note) 
-         VALUES (:English, :Czech, :Note)
+         VALUES (@English, @Czech, @Note);
          "
 
     let queryUpdate1 =
         "
         UPDATE WELDS
         SET Note = NULL
-        WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0
+        WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
 
-    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS_WELDS
+    let queryUpdate2 = // replaced with a stored procedure named DELETE_NULL_ROWS //_WELDS
         "
-        DECLARE
-            v_primary_key_value WELDS.ID_WELD%TYPE;
-            v_count NUMBER;
-        BEGIN
-            -- Find a row meeting the conditions where all non-primary key columns are NULL
-            SELECT ID_WELD
-            INTO v_primary_key_value
-            FROM WELDS
-            WHERE English IS NULL
-              AND Czech IS NULL
-              AND Note IS NULL;
+        DECLARE @v_primary_key_value INT;
+        DECLARE @v_count INT;
 
-            -- Check if a row meeting the conditions is found
-            IF v_primary_key_value IS NOT NULL THEN
-                -- Delete the row using the dynamically determined primary key value
-                DELETE FROM WELDS
-                WHERE ID_WELD = v_primary_key_value;
-            ELSE
-                -- TODO: Handle the case when no row is found
-                NULL; 
-           END IF;
+        SELECT TOP 1 @v_primary_key_value = ID_WELD
+        FROM WELDS
+        WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
+
+        IF @v_primary_key_value IS NOT NULL
+        BEGIN
+            DELETE FROM WELDS
+            WHERE ID_WELD = @v_primary_key_value;
         END;
+        -- TODO: Handle the case when no row is found
         "
                       
     let query = 
@@ -191,22 +162,17 @@ let internal queryWelds getConnection closeConnection =
 
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new welding.xlsx"
 
-    insertOrUpdateDictionary getConnection closeConnection query path list
+    insertOrUpdateDictionaryTSQL getConnection closeConnection query path list
 
-let internal queryBlastFurnaces getConnection closeConnection =
+let internal queryBlastFurnacesTSQL getConnection closeConnection =
     
     let queryDropSequence = 
         "
-        DECLARE
-          sequence_exists NUMBER;
+        DECLARE @sequence_exists INT;
+        SELECT @sequence_exists = COUNT(*) FROM sys.sequences WHERE name = 'EACH_TABLE_SEQUENCE';          
+        IF @sequence_exists > 0
         BEGIN
-              SELECT COUNT(*) INTO sequence_exists FROM user_sequences WHERE sequence_name = 'EACH_TABLE_SEQUENCE';          
-              IF sequence_exists > 0 THEN
-                EXECUTE IMMEDIATE 'DROP SEQUENCE EACH_TABLE_SEQUENCE';
-              END IF;
-            EXCEPTION
-              WHEN OTHERS THEN
-                NULL; -- Ignore errors if the sequence doesn't exist
+            EXEC sp_executesql N'DROP SEQUENCE EACH_TABLE_SEQUENCE';
         END;
         "
 
@@ -218,46 +184,37 @@ let internal queryBlastFurnaces getConnection closeConnection =
         START WITH 1
         INCREMENT BY 1
         NOCACHE
-        NOCYCLE
+        NOCYCLE;
         "       
      
     let queryInsert = 
          "
          INSERT INTO BLAST_FURNACES (English, Czech, Note) 
-         VALUES (:English, :Czech, :Note)
+         VALUES (@English, @Czech, @Note);
          "
 
     let queryUpdate1 =
         "
         UPDATE BLAST_FURNACES
         SET Note = NULL
-        WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0
+        WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
 
-    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS_BLAST_FURNACES
+    let queryUpdate2 = // replaced with a stored procedure named DELETE_NULL_ROWS //_BLAST_FURNACES
         "
-        DECLARE
-            v_primary_key_value BLAST_FURNACES.ID_BF%TYPE;
-            v_count NUMBER;
-        BEGIN
-            -- Find a row meeting the conditions where all non-primary key columns are NULL
-            SELECT ID_BF
-            INTO v_primary_key_value
-            FROM BLAST_FURNACES
-            WHERE English IS NULL
-              AND Czech IS NULL
-              AND Note IS NULL;
+        DECLARE @v_primary_key_value INT;
+        DECLARE @v_count INT;
 
-            -- Check if a row meeting the conditions is found
-            IF v_primary_key_value IS NOT NULL THEN
-                -- Delete the row using the dynamically determined primary key value
-                DELETE FROM BLAST_FURNACES
-                WHERE ID_BF = v_primary_key_value;
-            ELSE
-                -- TODO: Handle the case when no row is found
-                NULL; 
-           END IF;
+        SELECT TOP 1 @v_primary_key_value = ID_BF
+        FROM BLAST_FURNACES
+        WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
+
+        IF @v_primary_key_value IS NOT NULL
+        BEGIN
+            DELETE FROM BLAST_FURNACES
+            WHERE ID_BF = @v_primary_key_value;
         END;
+        -- TODO: Handle the case when no row is found
         "
                 
     let query = 
@@ -278,111 +235,130 @@ let internal queryBlastFurnaces getConnection closeConnection =
 
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new.xlsx"
 
-    insertOrUpdateDictionary getConnection closeConnection query path list
+    insertOrUpdateDictionaryTSQL getConnection closeConnection query path list
 
-    (*
-    sys
-    GRANT CREATE TRIGGER TO Dictionary;
-    
-    --**************************************
-    
-    sts NUMBER;
-    BEGIN
-    
+
+    (*        
     -- Drop trigger
-    DROP TRIGGER Steel_Structures_Trigger;
+    IF OBJECT_ID('Steel_Structures_Trigger', 'TR') IS NOT NULL
+        DROP TRIGGER Steel_Structures_Trigger;
+        
     -- Drop sequence
-    DECLARE
-      sequence_exi
+    IF OBJECT_ID('Each_Table_Sequence', 'SO') IS NOT NULL
+        DROP SEQUENCE Each_Table_Sequence;
+    
     -- Drop table
-    DROP TABLE Steel_Structures;
+    IF OBJECT_ID('Steel_Structures', 'U') IS NOT NULL
+        DROP TABLE Steel_Structures;
     
     -- Drop sequence
-    DECLARE
-      sequence_exists NUMBER;
+    IF OBJECT_ID('Each_Table_Sequence', 'SO') IS NOT NULL
     BEGIN
-      SELECT COUNT(*) INTO sequence_exists FROM user_sequences WHERE sequence_name = 'EACH_TABLE_SEQUENCE';
-      
-      IF sequence_exists > 0 THEN
-        EXECUTE IMMEDIATE 'DROP SEQUENCE Each_Table_Sequence';
-      END IF;
-    EXCEPTION
-      WHEN OTHERS THEN
-        NULL; -- Ignore errors if the sequence doesn't exist
+        DECLARE @sequence_exists INT;
+        SELECT @sequence_exists = COUNT(*) FROM sys.sequences WHERE name = 'Each_Table_Sequence';
+        
+        IF @sequence_exists > 0
+        BEGIN
+            EXEC('DROP SEQUENCE Each_Table_Sequence');
+        END;
     END;
-    /
     
+    -- Create sequence
     CREATE SEQUENCE Each_Table_Sequence
         START WITH 1
         INCREMENT BY 1
-        NOCACHE
-        NOCYCLE;
-        
+        NO CACHE
+        NO CYCLE;
+    
+    USE [Dictionary_MSSQLS]
+    
+    -- Create table
+    CREATE TABLE Blast_Furnaces
+    (
+        ID_BF INT PRIMARY KEY NOT NULL,
+        English NVARCHAR(100),
+        Czech NVARCHAR(100),
+        Note NVARCHAR(1000)
+    );
+    
+    -- Create table
     CREATE TABLE Steel_Structures
     (
-        ID_Steel NUMBER PRIMARY KEY NOT NULL,
-        English NVARCHAR2(100),
-        Czech NVARCHAR2(100),
-        Note NVARCHAR2(1000)
+        ID_Steel INT PRIMARY KEY NOT NULL,
+        English NVARCHAR(100),
+        Czech NVARCHAR(100),
+        Note NVARCHAR(1000)
+    );
+    
+    -- Create table
+    CREATE TABLE Welds
+    (
+        ID_Weld INT PRIMARY KEY NOT NULL,
+        English NVARCHAR(100),
+        Czech NVARCHAR(100),
+        Note NVARCHAR(1000)
     );
     
     -- To use the sequence for automatic numbering
     CREATE TRIGGER Steel_Structures_Trigger
-        BEFORE INSERT ON Steel_Structures
-        FOR EACH ROW
-        BEGIN
-            SELECT Each_Table_Sequence.NEXTVAL
-            INTO   :new.ID_Steel
-            FROM   dual;
-        END;
-    /
-    COMMIT;
+    ON Steel_Structures
+    AFTER INSERT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
     
+        UPDATE Steel_Structures
+        SET ID_Steel = NEXT VALUE FOR Each_Table_Sequence
+        WHERE ID_Steel IS NULL;
+    END;
+    
+    -- Update queries
     UPDATE Steel_Structures
     SET Note = NULL
-    WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0;
-    
-    -- The INSTR function is used to check if the string "void" exists in the Note column.
+    WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
     
     UPDATE Steel_Structures
     SET Note = REPLACE(Note, 'void', NULL)
-    WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0;
-
-
-    CREATE OR REPLACE PROCEDURE DELETE_NULL_ROWS
-    (
-        p_table_name IN VARCHAR2,
-        p_primary_key_column IN VARCHAR2
-    ) 
+    WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
+    
+    -- Stored Procedure DELETE_NULL_ROWS
+    IF OBJECT_ID('DELETE_NULL_ROWS', 'P') IS NOT NULL
+        DROP PROCEDURE DELETE_NULL_ROWS;
+    GO
+    
+    CREATE PROCEDURE DELETE_NULL_ROWS
+        @p_table_name NVARCHAR(100),
+        @p_primary_key_column NVARCHAR(100)
     AS
-        v_primary_key_value NUMBER;
-        v_sql_query VARCHAR2(1000); -- Adjust the size based on your needs
     BEGIN
-        -- Build the dynamic SQL query with a bind variable for the table name
-        v_sql_query :=
-            'SELECT ' || p_primary_key_column ||
-            ' FROM ' || p_table_name ||
+        DECLARE @v_primary_key_value INT;
+        DECLARE @v_sql_query NVARCHAR(1000); -- Adjust the size based on your needs
+    
+        -- Build the dynamic SQL query with a parameter for the table name
+        SET @v_sql_query =
+            'SELECT ' + @p_primary_key_column +
+            ' FROM ' + @p_table_name +
             ' WHERE English IS NULL AND Czech IS NULL AND Note IS NULL';
-
+    
         -- Find a row meeting the conditions where all non-primary key columns are NULL
-        EXECUTE IMMEDIATE v_sql_query INTO v_primary_key_value;
-
+        EXEC sp_executesql @v_sql_query, N'@v_primary_key_value INT OUTPUT', @v_primary_key_value OUTPUT;
+    
         -- Check if a row meeting the conditions is found
-        IF v_primary_key_value IS NOT NULL THEN
+        IF @v_primary_key_value IS NOT NULL
+        BEGIN
             -- Build the dynamic SQL delete statement
-            v_sql_query :=
-                'DELETE FROM ' || p_table_name ||
-                ' WHERE ' || p_primary_key_column || ' = :1';
-                -- :1 acts as a placeholder for the actual value that will be substituted during execution. 
-                -- The USING clause ensures that the correct value is associated with the bind variable.
-
+            SET @v_sql_query =
+                'DELETE FROM ' + @p_table_name +
+                ' WHERE ' + @p_primary_key_column + ' = @v_primary_key_value';
+    
             -- Delete the row using the dynamically determined primary key value
-            EXECUTE IMMEDIATE v_sql_query USING v_primary_key_value;
+            EXEC sp_executesql @v_sql_query, N'@v_primary_key_value INT', @v_primary_key_value;
+        END;
         ELSE
             -- TODO: Handle the case when no row is found
             NULL;
         END IF;
-    END DELETE_NULL_ROWS;
+    END;    
     
     *)
 

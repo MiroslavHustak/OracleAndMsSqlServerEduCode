@@ -8,8 +8,8 @@ open Oracle.ManagedDataAccess.Client
 
 open CTEs
 open Triggers
-open ScalarFunctions
 open DerivedTables
+open ScalarFunctions
 open WindowFunctions
 open StoredProcedures
 
@@ -17,13 +17,16 @@ open Queries
 open SubQueries
 
 open CTEsTSQL
+open ITVFsTSQL
+open ViewsTSQL
+open TriggersTSQL
 open DerivedTablesTSQL
 open WindowFunctionsTSQL
 open ScalarFunctionsTSQL
-open ITVFsTSQL
-open ViewsTSQL
 open StoredProceduresTSQL
-open TriggersTSQL
+
+open QueriesTSQL
+open SubQueriesTSQL
 
 module Program = 
 
@@ -87,7 +90,7 @@ module Program =
     //insertOperators getConnectionTSQL closeConnectionTSQL |> ignore
     //insertMachines getConnectionTSQL closeConnectionTSQL |> ignore
     //insertProductionOrder getConnectionTSQL closeConnectionTSQL |> ignore
-    updateProductionOrder getConnectionTSQL closeConnectionTSQL 
+    //updateProductionOrder getConnectionTSQL closeConnectionTSQL 
 
     //selectValuesDT getConnectionTSQL closeConnectionTSQL |> ignore
     //selectValuesWFTSQL getConnectionTSQL closeConnectionTSQL |> ignore
@@ -100,4 +103,9 @@ module Program =
     //executeStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
     //createStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
     //createTriggerTSQL getConnectionTSQL closeConnectionTSQL |> ignore 
+
+    printfn "%A" <| querySteelStructuresTSQL getConnectionTSQL closeConnectionTSQL 
+    printfn "%A" <| queryWeldsTSQL getConnectionTSQL closeConnectionTSQL  
+    printfn "%A" <| queryBlastFurnacesTSQL getConnectionTSQL closeConnectionTSQL  
+    printfn "%A" <| selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL  
     

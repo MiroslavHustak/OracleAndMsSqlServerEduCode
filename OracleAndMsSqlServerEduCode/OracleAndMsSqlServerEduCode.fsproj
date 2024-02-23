@@ -18,6 +18,7 @@
     <Compile Include="MsSqlServerEduCode\DerivedTables.fs" />
     <Compile Include="MsSqlServerEduCode\ddl.fs" />
     <Compile Include="MsSqlServerEduCode\dml.fs" />
+    <Compile Include="MsSqlServer_Example\SubQueries.fs" />
     <Compile Include="MsSqlServer_Example\ExcelTypeProvider.fs" />
     <Compile Include="MsSqlServer_Example\Queries.fs" />
     <Compile Include="OracleEducationalCode\DerivedTables.fs" />

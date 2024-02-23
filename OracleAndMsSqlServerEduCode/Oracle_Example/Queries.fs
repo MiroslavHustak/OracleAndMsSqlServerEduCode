@@ -58,7 +58,7 @@ let internal querySteelStructures getConnection closeConnection =
         WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0
         " 
 
-    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS_Steel_Structures
+    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS s prislusnym parametrem
         "
         DECLARE
             v_primary_key_value Steel_Structures.ID_Steel%TYPE;
@@ -82,8 +82,8 @@ let internal querySteelStructures getConnection closeConnection =
                 NULL; 
            END IF;
         END;
-        "         
-    
+        "     
+        
     let query = 
         [
             queryDropSequence
@@ -133,6 +133,14 @@ let internal queryWelds getConnection closeConnection =
         "       
      
     let queryInsert = 
+        (*
+            When using sequences to generate unique identifiers for primary keys, you don't have to manually manage the assignment of IDs during insertion. 
+            The database takes care of generating a unique ID for each new record automatically.
+            The cmdInsert statement inserts rows into the table, and you don't explicitly provide a value for the ID column.
+            With a sequence-based setup, the database ensures that a unique ID is assigned to each row, and you don't have to worry about specifying or managing those IDs
+            in your application code during insertion. It becomes particularly beneficial when dealing with updates or deletions. With a known and automatically assigned ID, 
+            you can easily construct update or delete statements based on the primary key without needing to track or remember specific IDs for each row.
+        *)
          "
          INSERT INTO WELDS (English, Czech, Note) 
          VALUES (:English, :Czech, :Note)
@@ -145,7 +153,7 @@ let internal queryWelds getConnection closeConnection =
         WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0
         " 
 
-    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS_WELDS
+    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS s prislusnym parametrem
         "
         DECLARE
             v_primary_key_value WELDS.ID_WELD%TYPE;
@@ -232,7 +240,7 @@ let internal queryBlastFurnaces getConnection closeConnection =
         WHERE Note IS NOT NULL AND INSTR(Note, 'void') > 0
         " 
 
-    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS_BLAST_FURNACES
+    let queryUpdate2 = //nahrazeno stored procedure s nazvem DELETE_NULL_ROWS s prislusnym parametrem
         "
         DECLARE
             v_primary_key_value BLAST_FURNACES.ID_BF%TYPE;
@@ -283,10 +291,7 @@ let internal queryBlastFurnaces getConnection closeConnection =
     GRANT CREATE TRIGGER TO Dictionary;
     
     --**************************************
-    
-    sts NUMBER;
-    BEGIN
-    
+        
     -- Drop trigger
     DROP TRIGGER Steel_Structures_Trigger;
     -- Drop sequence
