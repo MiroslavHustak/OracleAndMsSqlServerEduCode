@@ -312,6 +312,22 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         Czech NVARCHAR(100) NULL,
         Note NVARCHAR(1000) NULL
     );
+
+    CREATE TRIGGER Steel_Structures_Trigger
+    ON Steel_Structures
+    BEFORE INSERT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+    
+        DECLARE @NextVal INT;
+    
+        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
+    
+        INSERT INTO Steel_Structures (ID_Steel, OtherColumn1, OtherColumn2, ...)
+        VALUES (@NextVal, NULL, NULL, ...);
+    END;
+    
     
     -- To use the sequence for automatic numbering
     CREATE TRIGGER Steel_Structures_Trigger

@@ -89,15 +89,15 @@ let private pyramidOfDoom = Builder2
     
 //ja vim, kontrola na Has.Rows (overeni existence tabulky) sice nize je, ale pro jistotu jeste predtim overeni existence tabulky
 
-let queryExists = @"SELECT COUNT(*) FROM BLAST_FURNACES" 
+let queryExists = @"SELECT COUNT(*) FROM Blast_Furnaces" 
    
 let querySelectEN = 
     @"
     SELECT English, Czech
-    FROM BLAST_FURNACES
+    FROM Blast_Furnaces
     WHERE English IN (
         SELECT English
-        FROM BLAST_FURNACES
+        FROM Blast_Furnaces
         GROUP BY English
         HAVING COUNT(*) >= 4
     )
@@ -107,10 +107,10 @@ let querySelectEN =
 let querySelectCZ = 
     @"
     SELECT English, Czech
-    FROM BLAST_FURNACES
+    FROM Blast_Furnaces
     WHERE Czech IN (
         SELECT Czech
-        FROM BLAST_FURNACES
+        FROM Blast_Furnaces
         GROUP BY Czech
         HAVING COUNT(*) >= 4
     )
@@ -129,8 +129,8 @@ let internal selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL =
                                 
             pyramidOfDoom 
                 {
-                    let! count = cmdExists.ExecuteScalar() |> Casting.castAs<decimal>, Error "BLAST_FURNACES table not existing"                                   
-                    let! _ = int count > 0 |> Option.ofBool, Error "BLAST_FURNACES table not existing"   
+                    let! count = cmdExists.ExecuteScalar() |> Casting.castAs<int>, Error "Blast_Furnaces table not existing"                                   
+                    let! _ = count > 0 |> Option.ofBool, Error "Blast_Furnaces table not existing"   
                     let readerEN = cmdSelectEN.ExecuteReader()  
                     let readerCZ = cmdSelectCZ.ExecuteReader() 
                     
