@@ -36,18 +36,18 @@ let internal insertOrUpdateDictionaryTSQL getConnectionTSQL closeConnectionTSQL 
             let epRowsCount = rows.Length     
             let listRange = [ 0 .. epRowsCount - 1 ] 
 
-            use cmdDropSequence = new SqlCommand(List.item 0 query, connection)
-            use cmdDeleteAll = new SqlCommand(List.item 1 query, connection)
-            use cmdCreateSequence = new SqlCommand(List.item 2 query, connection)
-            use cmdInsert = new SqlCommand(List.item 3 query, connection)
-            use cmdUpdate1 = new SqlCommand(List.item 4 query, connection)
-            use cmdUpdate2 = new SqlCommand(List.item 5 query, connection)
+            //use cmdDropSequence = new SqlCommand(List.item 0 query, connection)
+            //use cmdDeleteAll = new SqlCommand(List.item 1 query, connection)
+            //use cmdCreateSequence = new SqlCommand(List.item 2 query, connection)
+            use cmdInsert = new SqlCommand(List.item 0 query, connection)
+            use cmdUpdate1 = new SqlCommand(List.item 1 query, connection)
+            use cmdUpdate2 = new SqlCommand(List.item 2 query, connection)
              
-            printfn "drop seq %i" <| cmdDropSequence.ExecuteNonQuery() // -1
+            //printfn "drop seq %i" <| cmdDropSequence.ExecuteNonQuery() // -1
             
-            printfn "del all %i" <| cmdDeleteAll.ExecuteNonQuery() //number of affected rows
+            //printfn "del all %i" <| cmdDeleteAll.ExecuteNonQuery() //number of affected rows
             
-            printfn "create seq %i" <| cmdCreateSequence.ExecuteNonQuery() // -1                         
+            //printfn "create seq %i" <| cmdCreateSequence.ExecuteNonQuery() // -1                         
             
             listRange
             |> List.iter

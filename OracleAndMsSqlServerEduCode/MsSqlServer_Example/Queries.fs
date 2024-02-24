@@ -73,9 +73,9 @@ let internal querySteelStructuresTSQL getConnection closeConnection =
     
     let query = 
         [
-            queryDropSequence
-            queryDeleteAll
-            queryCreateSequence
+            //queryDropSequence
+            //queryDeleteAll
+            //queryCreateSequence
             queryInsert
             queryUpdate1
             queryUpdate3
@@ -146,9 +146,9 @@ let internal queryWeldsTSQL getConnection closeConnection =
                       
     let query = 
         [
-            queryDropSequence
-            queryDeleteAll
-            queryCreateSequence
+            //queryDropSequence
+            //queryDeleteAll
+            //queryCreateSequence
             queryInsert
             queryUpdate1
             queryUpdate3
@@ -219,9 +219,9 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
                 
     let query = 
         [
-            queryDropSequence
-            queryDeleteAll
-            queryCreateSequence
+            //queryDropSequence
+            //queryDeleteAll
+            //queryCreateSequence
             queryInsert
             queryUpdate1
             queryUpdate3
@@ -311,11 +311,26 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         English NVARCHAR(100) NULL,
         Czech NVARCHAR(100) NULL,
         Note NVARCHAR(1000) NULL
-    );
+    );        
 
-    CREATE TRIGGER Steel_Structures_Trigger
-    ON Steel_Structures
-    BEFORE INSERT
+    CREATE TRIGGER Blast_Furnaces_Trigger
+    ON Blast_Furnaces
+    AFTER INSERT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+
+        DECLARE @NextVal INT;
+
+        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
+
+        INSERT INTO Blast_Furnaces (ID_BF)        
+        VALUES (@NextVal);
+    END;
+
+    CREATE TRIGGER Blast_Furnaces_Trigger
+    ON Blast_Furnaces
+    INSTEAD OF INSERT
     AS
     BEGIN
         SET NOCOUNT ON;
@@ -324,44 +339,76 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
     
         SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
     
-        INSERT INTO Steel_Structures (ID_Steel, OtherColumn1, OtherColumn2, ...)
-        VALUES (@NextVal, NULL, NULL, ...);
+        INSERT INTO Blast_Furnaces (ID_BF, English, Czech, Note)
+        SELECT 
+            COALESCE(ID_BF, @NextVal), 
+            English, 
+            Czech, 
+            Note
+        FROM INSERTED;
     END;
-    
-    
-    -- To use the sequence for automatic numbering
+
+
+
     CREATE TRIGGER Steel_Structures_Trigger
     ON Steel_Structures
-    AFTER INSERT
+    INSTEAD OF INSERT
     AS
     BEGIN
         SET NOCOUNT ON;
     
-        UPDATE Steel_Structures
-        SET ID_Steel = NEXT VALUE FOR Each_Table_Sequence
-        WHERE ID_Steel IS NULL;
+        DECLARE @NextVal INT;
+    
+        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
+    
+        INSERT INTO Steel_Structures (ID_Steel, English, Czech, Note)
+        SELECT 
+            ISNULL(ID_Steel, @NextVal), 
+            English, 
+            Czech, 
+            Note
+        FROM INSERTED;
     END;
+    
 
+    CREATE TRIGGER Steel_Structures_Trigger
+    ON Steel_Structures
+    INSTEAD OF INSERT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+    
+        DECLARE @NextVal INT;
+    
+        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
+    
+        INSERT INTO Steel_Structures (ID_Steel, English, Czech, Note)
+        SELECT 
+            COALESCE(ID_Steel, @NextVal), 
+            English, 
+            Czech, 
+            Note
+        FROM INSERTED;
+    END;
+    
     CREATE TRIGGER Welds_Trigger
     ON Welds
-    AFTER INSERT
+    INSTEAD OF INSERT
     AS
     BEGIN
         SET NOCOUNT ON;
-        UPDATE Welds
-        SET ID_Weld = NEXT VALUE FOR Each_Table_Sequence
-        WHERE ID_Weld IS NULL;
-    END;
-
-    CREATE TRIGGER BF_Trigger
-    ON Blast_Furnaces
-    AFTER INSERT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-        UPDATE Blast_Furnaces
-        SET ID_BF= NEXT VALUE FOR Each_Table_Sequence
-        WHERE ID_BF IS NULL;
+    
+        DECLARE @NextVal INT;
+    
+        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
+    
+        INSERT INTO Welds (ID_Steel, English, Czech, Note)
+        SELECT 
+            COALESCE(ID_Weld, @NextVal), 
+            English, 
+            Czech, 
+            Note
+        FROM INSERTED;
     END;
     
     -- Update queries
