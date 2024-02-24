@@ -137,38 +137,38 @@ let internal selectValues4Lines getConnection closeConnection =
                             reader 
                             |> List.map 
                                 (fun reader -> 
-                                    let getValues =                                                 
-                                        Seq.initInfinite (fun _ -> reader.Read() && reader.HasRows = true)
-                                        |> Seq.takeWhile ((=) true) 
-                                        |> Seq.collect
-                                            (fun _ ->                                                                                                                                                                                               
-                                                    seq 
-                                                        {                                                               
-                                                            Casting.castAs<string> reader.["English"]                                                                               
-                                                            Casting.castAs<string> reader.["Czech"]
-                                                        } 
-                                            ) |> List.ofSeq 
+                                            let getValues =                                                 
+                                                Seq.initInfinite (fun _ -> reader.Read() && reader.HasRows = true)
+                                                |> Seq.takeWhile ((=) true) 
+                                                |> Seq.collect
+                                                    (fun _ ->                                                                                                                                                                                               
+                                                            seq 
+                                                                {                                                               
+                                                                    Casting.castAs<string> reader.["English"]                                                                               
+                                                                    Casting.castAs<string> reader.["Czech"]
+                                                                } 
+                                                    ) |> List.ofSeq 
                                                      
-                                    //Pozor na nize uvedene problemy, uz jsem to nekde jinde zazil
-                                    //In F#, a sequence is lazily evaluated, while a list is eagerly evaluated. 
-                                    //This means that certain operations on sequences might not be executed until they are explicitly enumerated. 
+                                            //Pozor na nize uvedene problemy, uz jsem to nekde jinde zazil
+                                            //In F#, a sequence is lazily evaluated, while a list is eagerly evaluated. 
+                                            //This means that certain operations on sequences might not be executed until they are explicitly enumerated. 
                                              
-                                    //Jen pro overeni                                         
-                                    getValues |> List.iter (fun item -> printfn "%A" item) 
+                                            //Jen pro overeni                                         
+                                            //getValues |> List.iter (fun item -> printfn "%A" item) 
                                                                                     
-                                    let getValues = //u Seq to dava prazdnou kolekci - viz varovani vyse                                             
-                                        match getValues |> List.forall _.IsSome with
-                                        | true  -> Ok (getValues |> List.choose id)                                       
-                                        | false -> Error "ReadingDbError"  
+                                            let getValues = //u Seq to dava prazdnou kolekci - viz varovani vyse                                             
+                                                match getValues |> List.forall _.IsSome with
+                                                | true  -> Ok (getValues |> List.choose id)                                       
+                                                | false -> Error "ReadingDbError"  
                                              
-                                    //Jen pro overeni                                         
-                                    getValues |> function Ok value -> value |> List.iter (fun item -> printfn "%s" item) | Error err -> ()
+                                            //Jen pro overeni                                         
+                                            getValues |> function Ok value -> value |> List.iter (fun item -> printfn "%s" item) | Error err -> ()
                                              
-                                    reader.Close() 
-                                    reader.Dispose()     
+                                            reader.Close() 
+                                            reader.Dispose()     
     
-                                    getValues 
-                            ) |> Ok
+                                            getValues 
+                                ) |> Ok
                 | Error err ->
                             Error err                            
         finally

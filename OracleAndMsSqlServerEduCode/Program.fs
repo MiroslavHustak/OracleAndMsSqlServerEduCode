@@ -108,5 +108,5 @@ module Program =
     printfn "%A" <| querySteelStructuresTSQL getConnectionTSQL closeConnectionTSQL 
     printfn "%A" <| queryWeldsTSQL getConnectionTSQL closeConnectionTSQL  
     printfn "%A" <| queryBlastFurnacesTSQL getConnectionTSQL closeConnectionTSQL  
-    printfn "%A" <| selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL  
+    //printfn "%A" <| selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL  
     

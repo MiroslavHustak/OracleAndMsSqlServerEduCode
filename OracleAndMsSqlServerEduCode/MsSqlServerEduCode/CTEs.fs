@@ -76,7 +76,7 @@ let internal selectValuesCTETSQL getConnectionTSQL closeConnectionTSQL =
     use cmdExists = new SqlCommand(queryExists, connection)                                    
     use cmdSelect = new SqlCommand(querySelect, connection)
 
-    use readerCTE = cmdSelect.ExecuteReader()  //nejde 2x reader (ExecuteReader)
+    use readerCTE = cmdSelect.ExecuteReader()  //nejde 2x eagerly evaluated reader (ExecuteReader) //viz Subquery.fs
                                 
     [ readerCTE ]   
     |> List.map 

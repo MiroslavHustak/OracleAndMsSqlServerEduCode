@@ -131,8 +131,8 @@ let internal selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL =
                 {
                     let! count = cmdExists.ExecuteScalar() |> Casting.castAs<int>, Error "Blast_Furnaces table not existing"                                   
                     let! _ = count > 0 |> Option.ofBool, Error "Blast_Furnaces table not existing"   
-                    let readerEN = cmdSelectEN.ExecuteReader()  
-                    let readerCZ = cmdSelectCZ.ExecuteReader() 
+                    let readerEN = lazy cmdSelectEN.ExecuteReader()  //bez lazy evaluation to na rozdil od Oracle hodi error, ze reader neni uzavren
+                    let readerCZ = lazy cmdSelectCZ.ExecuteReader()  //bez lazy evaluation to na rozdil od Oracle hodi error, ze reader neni uzavren
                     
                     return Ok [ readerEN; readerCZ ]                     
                 }
@@ -142,38 +142,35 @@ let internal selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL =
                             reader 
                             |> List.map 
                                 (fun reader -> 
-                                    let getValues =                                                 
-                                        Seq.initInfinite (fun _ -> reader.Read() && reader.HasRows = true)
-                                        |> Seq.takeWhile ((=) true) 
-                                        |> Seq.collect
-                                            (fun _ ->                                                                                                                                                                                               
-                                                    seq 
-                                                        {                                                               
-                                                            Casting.castAs<string> reader.["English"]                                                                               
-                                                            Casting.castAs<string> reader.["Czech"]
-                                                        } 
-                                            ) |> List.ofSeq 
-                                                     
-                                    //Pozor na nize uvedene problemy, uz jsem to nekde jinde zazil
-                                    //In F#, a sequence is lazily evaluated, while a list is eagerly evaluated. 
-                                    //This means that certain operations on sequences might not be executed until they are explicitly enumerated. 
-                                             
-                                    //Jen pro overeni                                         
-                                    getValues |> List.iter (fun item -> printfn "%A" item) 
+                                            let reader = reader.Force()
+                                            let getValues =                                                 
+                                                Seq.initInfinite (fun _ -> reader.Read() && reader.HasRows = true)
+                                                |> Seq.takeWhile ((=) true) 
+                                                |> Seq.collect
+                                                    (fun _ ->                                                                                                                                                                                               
+                                                            seq 
+                                                                {                                                               
+                                                                    Casting.castAs<string> reader.["English"]                                                                               
+                                                                    Casting.castAs<string> reader.["Czech"]
+                                                                } 
+                                                    ) |> List.ofSeq //konverze quli toho, ze a sequence is lazily evaluated, while a list is eagerly evaluated.                                                    
+                                                                                
+                                            //Jen pro overeni                                         
+                                            //getValues |> List.iter (fun item -> printfn "%A" item) 
                                                                                     
-                                    let getValues = //u Seq to dava prazdnou kolekci - viz varovani vyse                                             
-                                        match getValues |> List.forall _.IsSome with
-                                        | true  -> Ok (getValues |> List.choose id)                                       
-                                        | false -> Error "ReadingDbError"  
+                                            let getValues =                                    
+                                                match getValues |> List.forall _.IsSome with
+                                                | true  -> Ok (getValues |> List.choose id)                                       
+                                                | false -> Error "ReadingDbError"  
                                              
-                                    //Jen pro overeni                                         
-                                    getValues |> function Ok value -> value |> List.iter (fun item -> printfn "%s" item) | Error err -> ()
-                                             
-                                    reader.Close() 
-                                    reader.Dispose()     
+                                            //Jen pro overeni                                         
+                                            getValues |> function Ok value -> value |> List.iter (fun item -> printfn "%s" item) | Error err -> ()
+                                        
+                                            reader.Close() 
+                                            reader.Dispose()     
     
-                                    getValues 
-                            ) |> Ok
+                                            getValues 
+                                ) |> Ok
                 | Error err ->
                             Error err                            
         finally

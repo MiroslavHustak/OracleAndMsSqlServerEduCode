@@ -11,14 +11,14 @@ open System.Data.SqlClient
 open Helpers
 open ExcelTypeProviderTSQL
 
-let private queryUpdate3 =
+let private queryDeleteNullRows =
     "
     BEGIN
-        EXEC DELETE_NULL_ROWS :table_name, :primary_key_column;
+        EXEC DELETE_NULL_ROWS @table_name, @primary_key_column;
     END;  
     "
 
-let internal querySteelStructuresTSQL getConnection closeConnection =
+let internal querySteelStructuresTSQL getConnectionTSQL closeConnectionTSQL =
         
     let queryDropSequence = 
         "
@@ -32,53 +32,38 @@ let internal querySteelStructuresTSQL getConnection closeConnection =
 
     let queryDeleteAll = "DELETE FROM Steel_Structures"
        
-    let queryCreateSequence = 
+    let queryCreateSequence = //AUTO_INCREMENT by jinak melo stacit
         "
         CREATE SEQUENCE EACH_TABLE_SEQUENCE
         START WITH 1
         INCREMENT BY 1
+        MINVALUE 1
+        MAXVALUE 1000000  
         NO CACHE
-        NO CYCLE;
+        CYCLE;
         "       
          
     let queryInsert = 
          "
-         INSERT INTO Steel_Structures (English, Czech, Note) 
-         VALUES (@English, @Czech, @Note);
+         INSERT INTO Steel_Structures (ID_Steel, English, Czech, Note) 
+         VALUES (NEXT VALUE FOR Each_Table_Sequence, @English, @Czech, @Note);
          "
 
-    let queryUpdate1 =
+    let queryUpdate =
         "
         UPDATE Steel_Structures
         SET Note = NULL
         WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
-
-    let queryUpdate2 = // replaced with a stored procedure named DELETE_NULL_ROWS //_Steel_Structures
-        "
-        DECLARE @v_primary_key_value INT;
-        DECLARE @v_count INT;
-
-        SELECT TOP 1 @v_primary_key_value = ID_Steel
-        FROM Steel_Structures
-        WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
-
-        IF @v_primary_key_value IS NOT NULL
-        BEGIN
-            DELETE FROM Steel_Structures
-            WHERE ID_Steel = @v_primary_key_value;
-        END;
-        -- TODO: Handle the case when no row is found
-        "
     
     let query = 
         [
-            //queryDropSequence
-            //queryDeleteAll
-            //queryCreateSequence
+            queryDropSequence
+            queryDeleteAll
+            queryCreateSequence
             queryInsert
-            queryUpdate1
-            queryUpdate3
+            queryUpdate
+            queryDeleteNullRows
         ]
 
     let list = 
@@ -89,9 +74,9 @@ let internal querySteelStructuresTSQL getConnection closeConnection =
     
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new steel structures.xlsx"
 
-    insertOrUpdateDictionaryTSQL getConnection closeConnection query path list
+    insertOrUpdateDictionaryTSQL getConnectionTSQL closeConnectionTSQL query path list
 
-let internal queryWeldsTSQL getConnection closeConnection =
+let internal queryWeldsTSQL getConnectionTSQL closeConnectionTSQL =
     
     let queryDropSequence = 
         "
@@ -110,14 +95,16 @@ let internal queryWeldsTSQL getConnection closeConnection =
         CREATE SEQUENCE EACH_TABLE_SEQUENCE
         START WITH 1
         INCREMENT BY 1
+        MINVALUE 1
+        MAXVALUE 1000000  
         NO CACHE
-        NO CYCLE;
+        CYCLE;
         "       
      
     let queryInsert = 
          "
-         INSERT INTO Welds (English, Czech, Note) 
-         VALUES (@English, @Czech, @Note);
+         INSERT INTO Welds (ID_Weld, English, Czech, Note) 
+         VALUES (NEXT VALUE FOR Each_Table_Sequence, @English, @Czech, @Note);
          "
 
     let queryUpdate1 =
@@ -126,32 +113,15 @@ let internal queryWeldsTSQL getConnection closeConnection =
         SET Note = NULL
         WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
-
-    let queryUpdate2 = // replaced with a stored procedure named DELETE_NULL_ROWS //_WELDS
-        "
-        DECLARE @v_primary_key_value INT;
-        DECLARE @v_count INT;
-
-        SELECT TOP 1 @v_primary_key_value = ID_WELD
-        FROM Welds
-        WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
-
-        IF @v_primary_key_value IS NOT NULL
-        BEGIN
-            DELETE FROM Welds
-            WHERE ID_Weld = @v_primary_key_value;
-        END;
-        -- TODO: Handle the case when no row is found
-        "
-                      
+            
     let query = 
         [
-            //queryDropSequence
-            //queryDeleteAll
-            //queryCreateSequence
+            queryDropSequence
+            queryDeleteAll
+            queryCreateSequence
             queryInsert
             queryUpdate1
-            queryUpdate3
+            queryDeleteNullRows
         ]
 
     let list = 
@@ -162,9 +132,9 @@ let internal queryWeldsTSQL getConnection closeConnection =
 
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new welding.xlsx"
 
-    insertOrUpdateDictionaryTSQL getConnection closeConnection query path list
+    insertOrUpdateDictionaryTSQL getConnectionTSQL closeConnectionTSQL query path list
 
-let internal queryBlastFurnacesTSQL getConnection closeConnection =
+let internal queryBlastFurnacesTSQL getConnectionTSQL closeConnectionTSQL =
     
     let queryDropSequence = 
         "
@@ -183,14 +153,16 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         CREATE SEQUENCE EACH_TABLE_SEQUENCE
         START WITH 1
         INCREMENT BY 1
+        MINVALUE 1
+        MAXVALUE 1000000  
         NO CACHE
-        NO CYCLE;
+        CYCLE;
         "       
      
     let queryInsert = 
          "
-         INSERT INTO Blast_Furnaces (English, Czech, Note) 
-         VALUES (@English, @Czech, @Note);
+         INSERT INTO Blast_Furnaces (ID_BF, English, Czech, Note) 
+         VALUES (NEXT VALUE FOR Each_Table_Sequence, @English, @Czech, @Note);
          "
 
     let queryUpdate1 =
@@ -199,32 +171,15 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         SET Note = NULL
         WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
         " 
-
-    let queryUpdate2 = // replaced with a stored procedure named DELETE_NULL_ROWS //_BLAST_FURNACES
-        "
-        DECLARE @v_primary_key_value INT;
-        DECLARE @v_count INT;
-
-        SELECT TOP 1 @v_primary_key_value = ID_BF
-        FROM Blast_Furnaces
-        WHERE English IS NULL AND Czech IS NULL AND Note IS NULL;
-
-        IF @v_primary_key_value IS NOT NULL
-        BEGIN
-            DELETE FROM Blast_Furnaces
-            WHERE ID_BF = @v_primary_key_value;
-        END;
-        -- TODO: Handle the case when no row is found
-        "
-                
+        
     let query = 
         [
-            //queryDropSequence
-            //queryDeleteAll
-            //queryCreateSequence
+            queryDropSequence
+            queryDeleteAll
+            queryCreateSequence
             queryInsert
             queryUpdate1
-            queryUpdate3
+            queryDeleteNullRows
         ]
 
     let list = 
@@ -235,49 +190,27 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
 
     let path = "e:\\source\\repos\\OracleDB_Excel_Files\\Slovnicek AJ new.xlsx"
 
-    insertOrUpdateDictionaryTSQL getConnection closeConnection query path list
+    insertOrUpdateDictionaryTSQL getConnectionTSQL closeConnectionTSQL query path list
 
+(*   
 
-    (*        
-    -- Drop trigger
-    IF OBJECT_ID('Steel_Structures_Trigger', 'TR') IS NOT NULL
-        DROP TRIGGER Steel_Structures_Trigger;
-        
-    -- Drop sequence
-    IF OBJECT_ID('Each_Table_Sequence', 'SO') IS NOT NULL
-        DROP SEQUENCE Each_Table_Sequence;
-    
-    -- Drop table
-    IF OBJECT_ID('Steel_Structures', 'U') IS NOT NULL
-        DROP TABLE Steel_Structures;
-    
-    -- Drop sequence
-    IF OBJECT_ID('Each_Table_Sequence', 'SO') IS NOT NULL
-    BEGIN
-        DECLARE @sequence_exists INT;
-        SELECT @sequence_exists = COUNT(*) FROM sys.sequences WHERE name = 'Each_Table_Sequence';
-        
-        IF @sequence_exists > 0
-        BEGIN
-            EXEC('DROP SEQUENCE Each_Table_Sequence');
-        END;
-    END;
-    
     USE [Dictionary_MSSQLS]
     -- Create sequence
-    CREATE SEQUENCE Each_Table_Sequence
-        START WITH 1
-        INCREMENT BY 1
-        NO CACHE
-        NO CYCLE;
-    
+    CREATE SEQUENCE EACH_TABLE_SEQUENCE
+    START WITH 1
+    INCREMENT BY 1
+    MINVALUE 1
+    MAXVALUE 1000000  
+    NO CACHE
+    CYCLE;
+
     USE [Dictionary_MSSQLS]
-    
+
     -- Create table
     -- Drop the existing table if it exists
     IF OBJECT_ID('Blast_Furnaces', 'U') IS NOT NULL
         DROP TABLE Blast_Furnaces;
-    
+
     -- Create the table with modifications
     CREATE TABLE Blast_Furnaces
     (
@@ -286,11 +219,11 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         Czech NVARCHAR(100) NULL,
         Note NVARCHAR(1000) NULL
     );
-    
+
     -- Drop the existing table if it exists
     IF OBJECT_ID('Steel_Structures', 'U') IS NOT NULL
         DROP TABLE Steel_Structures;
-    
+
     -- Create the table with modifications
     CREATE TABLE Steel_Structures
     (
@@ -299,11 +232,11 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         Czech NVARCHAR(100) NULL,
         Note NVARCHAR(1000) NULL
     );
-    
+
     -- Drop the existing table if it exists
     IF OBJECT_ID('Welds', 'U') IS NOT NULL
         DROP TABLE Welds;
-    
+
     -- Create the table with modifications
     CREATE TABLE Welds
     (
@@ -311,120 +244,24 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
         English NVARCHAR(100) NULL,
         Czech NVARCHAR(100) NULL,
         Note NVARCHAR(1000) NULL
-    );        
+    );     
 
     CREATE TRIGGER Blast_Furnaces_Trigger
     ON Blast_Furnaces
     AFTER INSERT
     AS
     BEGIN
-        SET NOCOUNT ON;
-
-        DECLARE @NextVal INT;
-
-        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
-
-        INSERT INTO Blast_Furnaces (ID_BF)        
-        VALUES (@NextVal);
+        SET NOCOUNT ON;    
+        UPDATE [Dictionary_MSSQLS].[dbo].[Blast_Furnaces]
+        SET Note = "TriggeredValue"
+        WHERE ID_BF = 1;
     END;
-
-    CREATE TRIGGER Blast_Furnaces_Trigger
-    ON Blast_Furnaces
-    INSTEAD OF INSERT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-    
-        DECLARE @NextVal INT;
-    
-        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
-    
-        INSERT INTO Blast_Furnaces (ID_BF, English, Czech, Note)
-        SELECT 
-            COALESCE(ID_BF, @NextVal), 
-            English, 
-            Czech, 
-            Note
-        FROM INSERTED;
-    END;
-
-
-
-    CREATE TRIGGER Steel_Structures_Trigger
-    ON Steel_Structures
-    INSTEAD OF INSERT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-    
-        DECLARE @NextVal INT;
-    
-        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
-    
-        INSERT INTO Steel_Structures (ID_Steel, English, Czech, Note)
-        SELECT 
-            ISNULL(ID_Steel, @NextVal), 
-            English, 
-            Czech, 
-            Note
-        FROM INSERTED;
-    END;
-    
-
-    CREATE TRIGGER Steel_Structures_Trigger
-    ON Steel_Structures
-    INSTEAD OF INSERT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-    
-        DECLARE @NextVal INT;
-    
-        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
-    
-        INSERT INTO Steel_Structures (ID_Steel, English, Czech, Note)
-        SELECT 
-            COALESCE(ID_Steel, @NextVal), 
-            English, 
-            Czech, 
-            Note
-        FROM INSERTED;
-    END;
-    
-    CREATE TRIGGER Welds_Trigger
-    ON Welds
-    INSTEAD OF INSERT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-    
-        DECLARE @NextVal INT;
-    
-        SELECT @NextVal = NEXT VALUE FOR Each_Table_Sequence;
-    
-        INSERT INTO Welds (ID_Steel, English, Czech, Note)
-        SELECT 
-            COALESCE(ID_Weld, @NextVal), 
-            English, 
-            Czech, 
-            Note
-        FROM INSERTED;
-    END;
-    
-    -- Update queries
-    UPDATE Steel_Structures
-    SET Note = NULL
-    WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
-    
-    UPDATE Steel_Structures
-    SET Note = REPLACE(Note, 'void', NULL)
-    WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
-    
+ 
     -- Stored Procedure DELETE_NULL_ROWS
     IF OBJECT_ID('DELETE_NULL_ROWS', 'P') IS NOT NULL
         DROP PROCEDURE DELETE_NULL_ROWS;
     GO
-    
+
     CREATE PROCEDURE DELETE_NULL_ROWS
     @p_table_name NVARCHAR(100),
     @p_primary_key_column NVARCHAR(100)
@@ -452,19 +289,73 @@ let internal queryBlastFurnacesTSQL getConnection closeConnection =
 
             -- Delete the row using the dynamically determined primary key value
             EXEC sp_executesql @v_sql_query, N'@v_primary_key_value INT', @v_primary_key_value;
-        END
-        ELSE
-            -- TODO: Handle the case when no row is found
-            BEGIN
-                -- Handle the case when no row is found
-                -- Add your code here to handle the scenario when no row is found
-                -- You can use PRINT or raise an error as needed
-                -- Example: PRINT 'No rows found for deletion.';
-			    PRINT 'No rows found for deletion.';
-            END;
+        END        
     END;
+    *)
 
+
+    (*   
+    SELECT 
+        MIN([ID_BF]) AS [ID_BF],
+        [English],
+        MIN([Czech]) AS [Czech],
+        MIN([Note]) AS [Note]
+    FROM [Dictionary_MSSQLS].[dbo].[Blast_Furnaces]
+    GROUP BY [English];
+        
+    SELECT
+        MIN([ID_Steel]) AS [ID_Steel], 
+        [English],
+        MIN([Czech]) AS [Czech],
+        MIN([Note]) AS [Note]
+    FROM [Dictionary_MSSQLS].[dbo].[Steel_Structures]
+    GROUP BY [English];
+
+    SELECT
+        MIN([ID_Weld]) AS [ID_Weld], 
+        [English],
+        MIN([Czech]) AS [Czech],
+        MIN([Note]) AS [Note]
+    FROM [Dictionary_MSSQLS].[dbo].[Welds]
+    GROUP BY [English];
+
+    -- Drop trigger
+    IF OBJECT_ID('Steel_Structures_Trigger', 'TR') IS NOT NULL
+        DROP TRIGGER Steel_Structures_Trigger;
+        
+    -- Drop sequence
+    IF OBJECT_ID('Each_Table_Sequence', 'SO') IS NOT NULL
+        DROP SEQUENCE Each_Table_Sequence;
     
+    -- Drop table
+    IF OBJECT_ID('Steel_Structures', 'U') IS NOT NULL
+        DROP TABLE Steel_Structures;
+    
+    -- Drop sequence
+    IF OBJECT_ID('Each_Table_Sequence', 'SO') IS NOT NULL
+    BEGIN
+        DECLARE @sequence_exists INT;
+        SELECT @sequence_exists = COUNT(*) FROM sys.sequences WHERE name = 'Each_Table_Sequence';
+        
+        IF @sequence_exists > 0
+        BEGIN
+            EXEC('DROP SEQUENCE Each_Table_Sequence');
+        END;
+    END; 
+    
+    -- Update queries
+    UPDATE Steel_Structures
+    SET Note = NULL
+    WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
+    
+    UPDATE Steel_Structures
+    SET Note = REPLACE(Note, 'void', NULL)
+    WHERE Note IS NOT NULL AND CHARINDEX('void', Note) > 0;
+    
+    -- Stored Procedure DELETE_NULL_ROWS
+    IF OBJECT_ID('DELETE_NULL_ROWS', 'P') IS NOT NULL
+        DROP PROCEDURE DELETE_NULL_ROWS;
+    GO    
     *)
 
 

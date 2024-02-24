@@ -32,8 +32,11 @@ let internal insertOrUpdateDictionary getConnection closeConnection query path l
             //new = an instance of a type, not a class in the traditional object-oriented programming sense
             let file = new DataTypesTest(path, "AJ-CJ-AJ") // F# type, hopefully no nulls
             let rows = file.Data |> Seq.toArray 
-            let epRowsCount = rows.Length     
-            let listRange = [ 0 .. epRowsCount - 1 ] 
+            let epRowsCount = rows.Length     //TODO zjistit, proc to bere o jeden radek vice
+            let listRange = [ 0 .. epRowsCount - 1 ] //TODO zjisti, cemu to na rozdil od T-SQL nevadi
+
+            printfn "epRowsCount %i" epRowsCount
+            printfn "listRangeLength %i" listRange.Length
 
             use cmdDropSequence = new OracleCommand(List.item 0 query, connection)
             use cmdDeleteAll = new OracleCommand(List.item 1 query, connection)
