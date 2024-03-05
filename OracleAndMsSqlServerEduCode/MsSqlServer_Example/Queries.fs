@@ -32,7 +32,7 @@ let internal querySteelStructuresTSQL getConnectionTSQL closeConnectionTSQL =
 
     let queryDeleteAll = "DELETE FROM Steel_Structures"
        
-    let queryCreateSequence = //AUTO_INCREMENT by jinak melo stacit
+    let queryCreateSequence = //AUTO_INCREMENT by jinak melo stacit pro T-SQL (poze Oracle nema AUTO_INCREMENT)
         "
         CREATE SEQUENCE EACH_TABLE_SEQUENCE
         START WITH 1

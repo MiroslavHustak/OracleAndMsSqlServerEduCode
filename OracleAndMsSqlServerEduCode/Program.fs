@@ -28,6 +28,8 @@ open StoredProceduresTSQL
 open QueriesTSQL
 open SubQueriesTSQL
 
+open SQLTypeProviders
+
 module Program = 
 
     //vse musi byt v try-with bloku
@@ -36,7 +38,7 @@ module Program =
     let private connectionString = 
         //"Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.0.0.2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=XEPDB1)));User Id=Test_User;Password=Test_User;"
         "Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.0.0.2)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=XEPDB1)));User Id=Dictionary;Password=Dictionary;"
-    
+            
     let private getConnection () =
         let connection = new OracleConnection(connectionString)  
         connection.Open()
@@ -49,6 +51,8 @@ module Program =
     //localhost
     //let [<Literal>] private connStringTSQL = @"Data Source=localhost\SQLEXPRESS;Initial Catalog=Test_User_MSSQLS;Integrated Security=True"
     let [<Literal>] private connStringTSQL = @"Data Source=localhost\SQLEXPRESS;Initial Catalog=Dictionary_MSSQLS;Integrated Security=True"
+    let [<Literal>] private connStringTP = @"Data Source=localhost\SQLEXPRESS;Initial Catalog=DGSada;Integrated Security=True"
+
 
     //shall be in a tryWith block
     let private getConnectionTSQL () =        
@@ -57,6 +61,15 @@ module Program =
         connection
     
     let private closeConnectionTSQL (connection: SqlConnection) =
+        connection.Close()
+        connection.Dispose()
+
+    let private getConnectionTP () =        
+        let connection = new SqlConnection(connStringTP)
+        connection.Open()
+        connection
+    
+    let private closeConnectionTP (connection: SqlConnection) =
         connection.Close()
         connection.Dispose()
     
@@ -105,8 +118,12 @@ module Program =
     //createStoredProcedure getConnectionTSQL closeConnectionTSQL |> ignore 
     //createTriggerTSQL getConnectionTSQL closeConnectionTSQL |> ignore 
 
-    printfn "%A" <| querySteelStructuresTSQL getConnectionTSQL closeConnectionTSQL 
-    printfn "%A" <| queryWeldsTSQL getConnectionTSQL closeConnectionTSQL  
-    printfn "%A" <| queryBlastFurnacesTSQL getConnectionTSQL closeConnectionTSQL  
+    //printfn "%A" <| querySteelStructuresTSQL getConnectionTSQL closeConnectionTSQL 
+    //printfn "%A" <| queryWeldsTSQL getConnectionTSQL closeConnectionTSQL  
+    //printfn "%A" <| queryBlastFurnacesTSQL getConnectionTSQL closeConnectionTSQL  
     //printfn "%A" <| selectValues4LinesTSQL getConnectionTSQL closeConnectionTSQL  
+
+    //insertOrUpdateTP1 () 
+    //insertOrUpdateTP2 () 
+    //insertOrUpdateTP3 ()
     
