@@ -125,5 +125,5 @@ module Program =
 
     //insertOrUpdateTP1 () 
     //insertOrUpdateTP2 () 
-    //insertOrUpdateTP3 ()
+    insertOrUpdateTP3 () |> ignore
     

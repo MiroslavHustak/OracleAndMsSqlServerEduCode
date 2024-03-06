@@ -11,8 +11,6 @@ open FSharp.Data.Sql          //SqlProvider
 
 open Helpers
 
-open System.Data.SqlClient
-
 [<Literal>] 
 let TypeProviderConn = @"Data Source=Misa\SQLEXPRESS;Initial Catalog=DGSada;Integrated Security=True;Encrypt=False"
 
@@ -24,32 +22,33 @@ let TypeProviderConn = @"Data Source=Misa\SQLEXPRESS;Initial Catalog=DGSada;Inte
 let internal insertOrUpdateTP1 () = 
 
     let str = @"N/A"
+
     use cmdInsert = 
         new SqlCommandProvider<
-        "
-        INSERT INTO SOALNew
-        ( 
-            [Pracovní značení],
-            [Digitalizační sada],
-            [Archiv],
-            [Fond],
-            [Číslo NAD],
-            [Číslo pomůcky],
-            [Inventární číslo],
-            [Signatura],
-            [Číslo kartonu],
-            [Upřesňující indentifikátor],
-            [Regest],
-            [Datace vzniku],
-            [Poznámka]
-        )
-        VALUES
-        (
-            @val02, @val03, @val04, @val05, @val06, @val07,
-            @val08, @val09, @val10, @val11, @val12, @val13, @val14
-        )     
-        ", 
-        TypeProviderConn>(TypeProviderConn)                    
+            "
+            INSERT INTO SOALNew
+            ( 
+                [Pracovní značení],
+                [Digitalizační sada],
+                [Archiv],
+                [Fond],
+                [Číslo NAD],
+                [Číslo pomůcky],
+                [Inventární číslo],
+                [Signatura],
+                [Číslo kartonu],
+                [Upřesňující indentifikátor],
+                [Regest],
+                [Datace vzniku],
+                [Poznámka]
+            )
+            VALUES
+            (
+                @val02, @val03, @val04, @val05, @val06, @val07,
+                @val08, @val09, @val10, @val11, @val12, @val13, @val14
+            )     
+            ", 
+            TypeProviderConn>(TypeProviderConn)                    
             
     cmdInsert.Execute
         (
@@ -154,17 +153,18 @@ type sql =
 //bez tryWith bloku
 let internal insertOrUpdateTP3 () = 
 
-    let ctx = sql.GetDataContext()
-    
-    (*
-    let example =
-        query {
-            for item in ctx.Dbo.Soal.Individuals do
-                where (item)               
-                select (item)
-        }
-    
-    example
-    *)
+    let ctx = sql.GetDataContext()    
 
-    ctx
+    let example =
+        query 
+            {
+                for item in ctx.Dbo.SoalNew do
+              
+                    where (item.Id < 10)    
+                    select (item.Id, item.PracovníZnačení)  
+
+            } |> Seq.toList
+    
+    printfn "%A" example   
+
+    
