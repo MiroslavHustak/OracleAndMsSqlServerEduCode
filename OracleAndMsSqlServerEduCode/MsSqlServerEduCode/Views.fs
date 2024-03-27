@@ -4,6 +4,7 @@ open System
 open System.Data.SqlClient
 
 open Helpers
+open FsToolkit.ErrorHandling
 
     (*
     -- Create a view with the same results as the derived table
@@ -59,22 +60,27 @@ let internal callView getConnectionTSQL closeConnectionTSQL =
                 Seq.initInfinite (fun _ -> reader.Read() && reader.HasRows = true)
                 |> Seq.takeWhile ((=) true) 
                 |> Seq.collect
-                    (fun _ ->
+                    (fun _ ->   
                             //V pripade pouziti Oracle zkontroluj skutecny typ sloupce v .NET   
 
                             //Jen pro overeni 
                             let columnType = reader.GetFieldType(reader.GetOrdinal("OperatorID"))
                             printfn "Column Type: %s" columnType.Name
-                                                         
+
+                            let indexOperatorID = reader.GetOrdinal("OperatorID")
+                            let indexFirstName = reader.GetOrdinal("FirstName")
+                            let indexLastName = reader.GetOrdinal("LastName")
+                            let indexJobTitle = reader.GetOrdinal("JobTitle")
+
                             seq 
-                                {                                       
-                                    Casting.castAs<int> reader.["OperatorID"] 
+                                {   
+                                    reader.GetInt32(indexOperatorID) |> Option.ofNull  
                                     |> Option.bind (fun item -> Option.filter (fun item -> not (item.Equals(String.Empty))) (Some (string item))) 
-                                    Casting.castAs<string> reader.["FirstName"]                                                                               
-                                    Casting.castAs<string> reader.["LastName"]
-                                    Casting.castAs<string> reader.["JobTitle"]   
+                                    reader.GetString(indexFirstName) |> Option.ofNull                                                                               
+                                    reader.GetString(indexLastName) |> Option.ofNull
+                                    reader.GetString(indexJobTitle) |> Option.ofNull
                                 } 
-                    ) |> List.ofSeq             
+                ) |> List.ofSeq 
 
             printfn "Result from View: %A" getValues
           

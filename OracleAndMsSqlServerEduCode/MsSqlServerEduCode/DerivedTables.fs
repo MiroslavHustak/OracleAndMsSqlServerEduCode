@@ -84,14 +84,19 @@ let internal selectValuesDT getConnectionTSQL closeConnectionTSQL =
                 Seq.initInfinite (fun _ -> reader.Read() && reader.HasRows = true)
                 |> Seq.takeWhile ((=) true) 
                 |> Seq.collect
-                    (fun _ ->                                                                                                                                                                                               
+                    (fun _ ->    
+                            let indexOperatorID = reader.GetOrdinal("OperatorID")
+                            let indexFirstName = reader.GetOrdinal("FirstName")
+                            let indexLastName = reader.GetOrdinal("LastName")
+                            let indexJobTitle = reader.GetOrdinal("JobTitle")
+
                             seq 
                                 {   
-                                    Casting.castAs<int> reader.["OperatorID"] 
+                                    reader.GetInt32(indexOperatorID) |> Option.ofNull  
                                     |> Option.bind (fun item -> Option.filter (fun item -> not (item.Equals(String.Empty))) (Some (string item))) 
-                                    Casting.castAs<string> reader.["FirstName"]                                                                               
-                                    Casting.castAs<string> reader.["LastName"]
-                                    Casting.castAs<string> reader.["JobTitle"]  
+                                    reader.GetString(indexFirstName) |> Option.ofNull                                                                               
+                                    reader.GetString(indexLastName) |> Option.ofNull
+                                    reader.GetString(indexJobTitle) |> Option.ofNull
                                 } 
                     ) |> List.ofSeq 
                                              

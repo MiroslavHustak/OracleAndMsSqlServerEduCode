@@ -46,7 +46,7 @@ let internal createScalarFunction getConnection closeConnection =
         try   
             use cmdCreateFunction = new OracleCommand(queryCreateFunction, connection)                            
                          
-            cmdCreateFunction.ExecuteNonQuery()  |> ignore 
+            cmdCreateFunction.ExecuteNonQuery() |> ignore 
           
         finally
             closeConnection connection

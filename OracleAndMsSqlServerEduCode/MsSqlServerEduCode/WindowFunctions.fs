@@ -144,19 +144,26 @@ let internal selectValuesWFTSQL getConnectionTSQL closeConnectionTSQL =
                                     (fun _ ->
                                             //Pro overeni typu noveho sloupce
                                             let columnType = reader.GetFieldType(reader.GetOrdinal("RowNum"))
-                                            printfn "Column Type: %s" columnType.Name
-                                                             
+                                            printfn "Column Type: %s" columnType.Name                                                             
+                                           
+                                            let indexProductID = reader.GetOrdinal("ProductID")
+                                            let indexProductName = reader.GetOrdinal("ProductName")
+                                            let indexDescription = reader.GetOrdinal("Description")
+                                            let indexRowNum = reader.GetOrdinal("RowNum")
+
                                             seq 
-                                                {    
-                                                    Casting.castAs<int> reader.["ProductID"] 
+                                                {   
+                                                    reader.GetInt32(indexProductID)
+                                                    |> Option.ofNull  
                                                     |> Option.bind (fun item -> Option.filter (fun item -> not (item.Equals(String.Empty))) (Some (string item))) 
-                                                    Casting.castAs<string> reader.["ProductName"]                                                                               
-                                                    Casting.castAs<string> reader.["Description"]   
-                                                    Casting.castAs<Int64> reader.["RowNum"]   
+                                                    reader.GetString(indexProductName) |> Option.ofNull                                                                               
+                                                    reader.GetString(indexDescription) |> Option.ofNull
+                                                    reader.GetInt64(indexRowNum) 
+                                                    |> Option.ofNull
                                                     |> Option.bind (fun item -> Option.filter (fun item -> not (item.Equals(String.Empty))) (Some (string item))) 
-                                                } 
-                                    ) |> List.ofSeq 
-                                                    
+                                                }                                                    
+                                                
+                                    ) |> List.ofSeq                                                     
                                                                         
                             //Jen pro overeni                                         
                             getValues |> List.iter (fun item -> printfn "%A" item) 
