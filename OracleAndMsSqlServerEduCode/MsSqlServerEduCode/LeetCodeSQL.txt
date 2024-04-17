@@ -1,0 +1,431 @@
+﻿SELECT id
+FROM (
+    SELECT id, temperature, LAG(temperature) OVER (ORDER BY recordDate) AS previous_temperature
+    FROM Weather
+) AS id
+WHERE previous_temperature < temperature;
+
+****************************************************************************************************
+Someone's else solution:
+
+First Solution
+
+SELECT a1.machine_id, ROUND(AVG(a2.timestamp-a1.timestamp), 3) AS processing_time 
+FROM Activity AS a1
+INNER JOIN Activity AS a2
+ON a1.machine_id=a2.machine_id AND a1.process_id=a2.process_id
+AND a1.activity_type='start' AND a2.activity_type='end'
+GROUP BY a1.machine_id
+
+Second Solution
+
+select 
+a.machine_id,
+round(
+      (select avg(a1.timestamp) from Activity a1 where a1.activity_type = 'end' and a1.machine_id = a.machine_id) - 
+      (select avg(a1.timestamp) from Activity a1 where a1.activity_type = 'start' and a1.machine_id = a.machine_id)
+,3) as processing_time
+from Activity a
+group by a.machine_id
+
+
+My solution:
+
+--pouze jednou WITH, dve CTE se musi definovat takto:
+WITH MyCTE1 AS (
+    SELECT 
+        machine_id, 
+        process_id, 
+        [timestamp],
+        LAG([timestamp]) OVER (PARTITION BY machine_id, process_id ORDER BY [timestamp]) AS lag_timestamp
+    FROM 
+        Activity
+), 
+MyCTE2 AS (    
+    SELECT 
+        machine_id, 
+        process_id, 
+        ([timestamp] - lag_timestamp) AS timestampDiff
+    FROM 
+        MyCTE1
+    WHERE 
+        [timestamp] IS NOT NULL AND lag_timestamp IS NOT NULL
+)    
+
+SELECT DISTINCT
+    machine_id, 
+    ROUND(AVG(timestampDiff) OVER (PARTITION BY machine_id), 3) AS processing_time 
+FROM 
+    MyCTE2;
+
+****************************************************************************************************
+
+My solution:
+
+WITH MyCTE AS
+(
+SELECT e.name, b.bonus
+FROM Employee e
+LEFT JOIN Bonus b
+ON b.empId = e.empId 
+)
+
+SELECT MyCTE.name, MyCTE.bonus
+FROM MyCTE
+WHERE MyCTE.bonus < 1000 OR MyCTE.bonus IS NULL
+
+Moze byt jednoduse takto (coz jsem nevedel, ze lze WHERE po ON)
+SELECT e.name, b.bonus
+FROM Employee e
+LEFT JOIN Bonus b
+ON b.empId = e.empId 
+WHERE b.bonus < 1000 OR b.bonus IS NULL
+
+**************************************************************************************
+
+Solution by ChatGPT (CROSS JOIN)
+SELECT 
+    s.student_id,
+    s.student_name,
+    sub.subject_name,
+    COUNT(e.subject_name) AS attended_exams
+FROM 
+    Students s
+CROSS JOIN 
+    Subjects sub
+LEFT JOIN 
+    Examinations e ON s.student_id = e.student_id AND sub.subject_name = e.subject_name
+GROUP BY 
+    s.student_id, s.student_name, sub.subject_name
+ORDER BY 
+    s.student_id, sub.subject_name;
+
+****************************************************************************************************
+
+SELECT e1.name
+FROM Employee e1
+JOIN Employee e2 
+ON e2.managerId = e1.id
+GROUP BY e1.id, e1.name
+HAVING COUNT(e2.id) >= 5;
+
+***************************************************************************************************************
+
+SELECT id, movie, [description], rating
+FROM Cinema
+WHERE (id = 1 AND (SELECT COUNT(id) FROM Cinema) = 1 AND [description] <> 'boring' )
+      OR
+      id % 2 = 1 AND rating <> (SELECT MIN(rating) FROM Cinema) AND [description] <> 'boring'
+ORDER BY rating DESC;
+
+--rating <> (SELECT MIN(rating) FROM Cinema) jsem tam pridal navic, staci jen toto: 
+
+SELECT id, movie, [description], rating
+FROM Cinema
+WHERE (id = 1 AND (SELECT COUNT(id) FROM Cinema) = 1 AND [description] <> 'boring' )
+      OR
+      id % 2 = 1 AND [description] <> 'boring'
+ORDER BY rating DESC;
+
+*********************************************************************************
+
+SELECT  
+    p.product_id, 
+    ROUND(ISNULL((SUM(p.price * u.units) + 0.00)/ (SUM(u.units) + 0.00), 0), 2) AS average_price
+FROM 
+    Prices p
+LEFT OUTER JOIN 
+    UnitsSold u ON p.product_id = u.product_id AND (purchase_date BETWEEN start_date AND end_date)
+GROUP BY 
+    p.product_id;
+
+****************************************************************************************************
+
+SELECT p1.project_id, ROUND(AVG(e.experience_years + 0.00), 2) AS average_years 
+FROM Employee e
+INNER JOIN Project p1
+ON p1.employee_id = e.employee_id  
+GROUP BY p1.project_id;
+
+***********************************************************************
+WITH TotalUsers AS (
+    SELECT 
+        COUNT(user_id) AS total_users
+    FROM 
+        Users
+)
+
+SELECT 
+    r.contest_id,
+    ROUND((COUNT(r.user_id) * 100.0 / (SELECT total_users FROM TotalUsers)), 2) AS [percentage]
+FROM 
+    Users u
+INNER JOIN 
+    Register r ON u.user_id = r.user_id
+GROUP BY 
+    r.contest_id 
+ORDER BY 
+    [percentage] DESC, r.contest_id ASC;
+
+*************************************************************************************
+
+Tohle nefunguje, dle ChatGPT z nasledujicich duvodu:
+SELECT 
+    query_name, 
+    ROUND(SUM((rating / position) / COUNT(query_name)), 2) AS quality,
+    ROUND((SELECT COUNT(rating) FROM Queries WHERE rating < 3) * 100.0 / COUNT(rating), 2) AS poor_query_percentage 
+FROM 
+    Queries
+WHERE 
+    query_name IS NOT NULL  
+GROUP BY 
+    query_name;
+
+Aggregating within Aggregate: In your first subquery for quality, you're using COUNT(query_name) within SUM(). This is not allowed because you're already aggregating by query_name using GROUP BY. You can't nest aggregate functions like this.
+
+Subquery Inside Aggregate: In your second subquery for poor_query_percentage, you're trying to perform COUNT(rating) and COUNT(*) alongside each other. This is again problematic because you're trying to perform aggregate functions (COUNT()) within another aggregate function (ROUND()).
+
+Tohle funguje
+SELECT 
+    query_name,
+    ROUND(SUM(CAST(rating AS FLOAT) / position) / COUNT(query_name), 2) AS quality,
+    ROUND((COUNT(CASE WHEN rating < 3 THEN 1 END) * 100.0) / COUNT(*), 2) AS poor_query_percentage
+FROM 
+    Queries
+WHERE 
+    query_name IS NOT NULL    
+GROUP BY 
+    query_name;
+
+******************************************************************************************************
+
+WITH MonthCTE AS (
+    SELECT 
+        DATEFROMPARTS(YEAR(trans_date), MONTH(trans_date), 1) AS Month,
+        country,
+        state,
+        amount
+    FROM 
+        Transactions
+)
+SELECT 
+    FORMAT(Month, 'yyyy-MM') AS month,
+    country, 
+    COUNT(*) AS trans_count, 
+    SUM(CASE WHEN state = 'approved' THEN 1 ELSE 0 END) AS approved_count,
+    SUM(CASE WHEN state = 'approved' THEN amount ELSE 0 END) AS approved_total_amount,
+    SUM(amount) AS trans_total_amount
+FROM 
+    MonthCTE
+GROUP BY 
+    month, country;
+
+************************************************************************
+
+WITH MinOrderDates AS (
+    SELECT customer_id, MIN(order_date) AS min_order_date
+    FROM Delivery
+    GROUP BY customer_id
+)
+
+SELECT 
+    ROUND(
+        (COUNT(CASE WHEN d.order_date = d.customer_pref_delivery_date THEN d.customer_id END) + 0.0)
+        / 
+        (SELECT COUNT(DISTINCT customer_id) FROM Delivery)
+        * 100.0,
+        2
+    ) AS immediate_percentage
+FROM Delivery d
+JOIN MinOrderDates m ON d.customer_id = m.customer_id
+WHERE d.order_date = m.min_order_date
+  AND d.customer_pref_delivery_date = m.min_order_date;
+
+
+***************************************************************************
+
+SELECT ROUND(
+           (1.0 * 
+            (SELECT COUNT(DISTINCT a1.player_id)
+             FROM Activity a1
+             JOIN Activity a2 
+             ON a1.player_id = a2.player_id
+             AND a2.event_date = DATEADD(day, 1, a1.event_date)
+             WHERE EXISTS (
+                 SELECT 1
+                 FROM Activity a3
+                 WHERE a3.player_id = a1.player_id
+                 HAVING MIN(a3.event_date) = a1.event_date
+             )
+            ) /
+            (SELECT COUNT(DISTINCT player_id) FROM Activity)
+           ), 2) AS fraction;
+
+***********************************************************************************
+
+SELECT teacher_id, 
+(
+    COUNT (DISTINCT subject_id)
+)
+AS cnt
+FROM Teacher
+GROUP BY teacher_id
+
+*******************************************************
+
+WITH MyCTE AS
+(
+SELECT activity_date AS day, COUNT (DISTINCT user_id) AS active_users
+FROM Activity 
+WHERE activity_date BETWEEN DATEADD(DAY, -29, '2019-07-27') AND '2019-07-27'
+GROUP BY user_id, activity_date
+)
+
+SELECT cte.day AS day, COUNT(cte.active_users) AS active_users
+FROM MyCTE cte
+GROUP BY cte.day, cte.active_users
+
+
+anebo takhle:
+SELECT activity_date AS day, COUNT(DISTINCT user_id) AS active_users
+FROM Activity
+WHERE activity_date BETWEEN '2019-06-28' AND '2019-07-27'
+GROUP BY activity_date;
+
+***********************************************************************************************
+
+WITH MyCTE AS
+(
+SELECT product_id, MIN(year) AS min_year 
+FROM Sales 
+GROUP BY product_id
+)
+
+SELECT s.product_id, s.year AS first_year , s.quantity, s.price 
+FROM Sales s
+JOIN MyCTE cte
+ON s.product_id = cte.product_id AND s.year = cte.min_year
+
+nebo od ChatGPT:
+SELECT s.product_id, s.year AS first_year, s.quantity, s.price
+FROM Sales s
+JOIN (
+    SELECT product_id, MIN(year) AS min_year
+    FROM Sales
+    GROUP BY product_id
+) t ON s.product_id = t.product_id AND s.year = t.min_year;
+
+*********************************************************************************
+
+SELECT class   
+FROM Courses
+GROUP BY class
+HAVING COUNT(student) >= 5
+
+*************************************************************************
+
+
+SELECT user_id, 
+(
+    COUNT(user_id)
+)
+AS followers_count
+FROM Followers 
+GROUP BY user_id 
+
+********************************************************************************
+
+WITH MyCTE AS
+(
+    SELECT num
+    FROM MyNumbers
+    GROUP BY num
+    HAVING COUNT(num) = 1 
+)
+
+SELECT 
+    CASE 
+        WHEN EXISTS (SELECT 1 FROM MyCTE) THEN MAX(num)
+        ELSE NULL
+    END AS num
+FROM MyCTE;
+
+******************************************************************************************************
+
+WITH CustomerProductCounts AS (
+    SELECT customer_id, COUNT(DISTINCT product_key) AS num_products_bought
+    FROM Customer
+    GROUP BY customer_id
+),
+AllProducts AS (
+    SELECT COUNT(DISTINCT product_key) AS num_products_available
+    FROM Product
+)
+
+SELECT cpc.customer_id
+FROM CustomerProductCounts cpc
+JOIN AllProducts ap ON cpc.num_products_bought = ap.num_products_available;
+
+
+TOTO NEFUNGUJE:
+WITH MyCTE AS
+(
+    SELECT DISTINCT c.product_key 
+    FROM Customer c 
+    JOIN Product p
+    ON p.product_key = c.product_key 
+    
+)
+
+SELECT c.customer_id AS customer_id
+FROM Customer c 
+JOIN MyCTE cte
+ON c.product_key = cte.product_key
+JOIN Product p
+ON p.product_key = c.product_key
+GROUP BY c.customer_id
+HAVING COUNT(cte.product_key) > 1 AND COUNT(DISTINCT c.product_key) = COUNT(DISTINCT p.product_key);
+
+**********************************************************************************
+
+SELECT e.employee_id, e.name, 
+(
+   COUNT(r.reports_to)
+)
+AS reports_count,
+(
+    --ROUND(AVG(r.age), 0)
+    --CEILING(AVG(r.age + 0.0))
+    ROUND(AVG(r.age*1.0),0)
+) 
+AS average_age
+FROM Employees e
+JOIN Employees r
+ON e.employee_id = r.reports_to AND r.reports_to IS NOT NULL
+GROUP BY e.employee_id, e.name
+ORDER BY e.employee_id
+
+*********************************************************************************************************
+
+SELECT DISTINCT n.employee_id, n.department_id
+FROM Employee y
+INNER JOIN Employee n 
+ON y.employee_id = n.employee_id
+GROUP BY n.employee_id, n.department_id, n.primary_flag
+HAVING COUNT(n.department_id) = 1 OR n.primary_flag = 'Y';
+
+*************************************************************************
+
+SELECT x, y, z,
+    CASE
+        WHEN x + y > z AND x + z > y AND y + z > x THEN 'Yes'
+        ELSE 'No'
+    END AS triangle 
+FROM Triangle;
+
+
+
+
+
+
+
