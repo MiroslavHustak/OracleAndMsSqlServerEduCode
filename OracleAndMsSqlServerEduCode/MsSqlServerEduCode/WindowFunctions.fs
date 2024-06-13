@@ -85,6 +85,68 @@
     The DENSE_RANK function assigns a rank to each operator within their job title partition. 
     The result is associated with each row, and you get a rank for every operator in the output.
 
+
+    Let's create a sample table called Products and populate it with some data to demonstrate the usage of ROW_NUMBER() with different ORDER BY and PARTITION BY clauses in SQL Server. We'll then execute queries to show the result sets and explain the difference between them.
+    
+    Sample Table Creation and Data Insertion
+    First, let's create and populate a sample Products table:
+        
+    CREATE TABLE Products (
+        ProductID INT,
+        ProductName VARCHAR(50),
+        Description VARCHAR(50)
+    );
+    
+    INSERT INTO Products (ProductID, ProductName, Description)
+    VALUES
+        (1, 'Laptop', 'Electronics'),
+        (2, 'Desktop', 'Electronics'),
+        (3, 'Chair', 'Furniture'),
+        (4, 'Table', 'Furniture'),
+        (5, 'Printer', 'Electronics'),
+        (6, 'Sofa', 'Furniture');
+    Now, let's execute two queries using ROW_NUMBER() with different window specifications.
+    
+    Example 1: ROW_NUMBER() OVER (ORDER BY ProductID) AS RowNum
+    
+    SELECT 
+        ProductID,
+        ProductName,
+        ROW_NUMBER() OVER (ORDER BY ProductID) AS RowNum
+    FROM 
+        Products
+    ORDER BY 
+        ProductID;
+    Result:
+    
+    ProductID	ProductName	RowNum
+    1	Laptop	1
+    2	Desktop	2
+    3	Chair	3
+    4	Table	4
+    5	Printer	5
+    6	Sofa	6
+    
+   
+    SELECT 
+        ProductID,
+        ProductName,
+        Description,
+        ROW_NUMBER() OVER (PARTITION BY Description ORDER BY ProductID) AS RowNum
+    FROM 
+        Products
+    ORDER BY 
+        Description, ProductID;
+    Result:
+    
+    ProductID	ProductName	Description	RowNum
+    1	Laptop	Electronics	1
+    2	Desktop	Electronics	2
+    5	Printer	Electronics	3
+    3	Chair	Furniture	1
+    4	Table	Furniture	2
+    6	Sofa	Furniture	3
+
     *)
 
 open System
