@@ -2083,6 +2083,26 @@ ON y.employee_id = n.employee_id
 GROUP BY n.employee_id, n.department_id, n.primary_flag
 HAVING COUNT(n.department_id) = 1 OR n.primary_flag = 'Y';
 
+
+Pomalejsi reseni:
+WITH CTE AS 
+(
+    SELECT e1.employee_id,
+        CASE 
+            WHEN e1.primary_flag = 'Y' THEN e1.department_id
+            WHEN e1.primary_flag = 'N' AND
+                    (SELECT COUNT(*) FROM Employee e2 WHERE e2.employee_id = e1.employee_id) = 1 
+            THEN e1.department_id
+            ELSE NULL
+        END AS department_id
+    FROM Employee e1
+    GROUP BY e1.employee_id, e1.department_id, e1.primary_flag
+)
+
+SELECT employee_id, department_id
+FROM CTE 
+WHERE department_id IS NOT NULL;
+
 *************************************************************************
 Table: Triangle
 
@@ -2131,6 +2151,23 @@ SELECT x, y, z,
     END AS triangle 
 FROM Triangle;
 
+
+nebo jeste takhle, zde je zajimavy ten UNION ALL (kupodivu to neni ani o moc pomalejsi, nez vyse uvedeny kod):
+WITH Yes AS (
+    SELECT x, y, z, 'Yes' AS triangle 
+    FROM Triangle
+    WHERE x + y > z AND x + z > y AND y + z > x
+),
+Nope AS (
+    SELECT x, y, z, 'No' AS triangle 
+    FROM Triangle
+    WHERE x + y <= z OR x + z <= y OR y + z <= x
+)
+SELECT x, y, z, triangle
+FROM Yes
+UNION ALL
+SELECT x, y, z, triangle
+FROM Nope;
 *****************************************************************
 
 Table: Logs
@@ -2187,6 +2224,25 @@ SELECT DISTINCT num AS ConsecutiveNums
 FROM ConsecutiveSequences
 GROUP BY num, SequenceGroup
 HAVING COUNT(*) >= 
+
+Tohle je rychlejsi:
+WITH CTE AS
+(
+    SELECT 
+        LAG(num, 2) OVER (ORDER BY id) AS num_2,
+        LAG(num, 1) OVER (ORDER BY id) AS num_1,
+        num AS num_0,
+        LAG(id, 2) OVER (ORDER BY id) AS id_2,
+        LAG(id, 1) OVER (ORDER BY id) AS id_1,
+        id AS id_0
+    FROM Logs
+)    
+SELECT DISTINCT
+    num_0 AS ConsecutiveNums 
+FROM CTE    
+WHERE 
+    num_2 = num_1 AND num_2 = num_0 AND 
+    (id_2 + 1) = id_1 AND (id_1 + 1) = id_0;
 
 *************************************
 
@@ -2247,8 +2303,136 @@ FROM Products
 GROUP BY product_id
 HAVING MIN(change_date) > '2019-08-16'
 
+
+Moje slozitejsi reseni, kupodivu rychlejsi
+WITH CTE1 AS
+(
+    SELECT 
+        product_id, 
+        CASE
+            WHEN change_date <= '2019-08-16' THEN new_price 
+            ELSE 10
+        END AS price,
+        CASE
+            WHEN MIN(change_date) OVER (PARTITION BY product_id) < '2019-08-16' 
+                 AND MAX(change_date) OVER (PARTITION BY product_id) > '2019-08-16' 
+                 AND change_date > '2019-08-16' THEN NULL
+            ELSE change_date
+        END AS change_date
+    FROM Products  
+),
+CTE2 AS
+(
+    SELECT 
+        product_id,
+        price,
+        change_date,
+        ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY change_date DESC) AS rn
+    FROM CTE1
+),
+CTE3 AS
+(
+    SELECT product_id, price, change_date
+    FROM CTE1 
+    WHERE change_date = '2019-08-16' 
+),
+CTE4 AS
+( 
+    SELECT product_id, price, change_date
+    FROM CTE2 
+    WHERE rn = 1 
+), 
+CTE5 AS
+(
+    SELECT c3.product_id, c3.price, c3.change_date
+    FROM CTE3 c3
+    UNION
+    SELECT c4.product_id, c4.price, c4.change_date
+    FROM CTE4 c4
+),
+CTE6 AS
+(
+SELECT 
+    product_id,
+    price,
+    change_date,
+    COUNT(*) OVER (PARTITION BY product_id) AS cnt
+FROM CTE5 
+GROUP BY product_id, price, change_date
+)
+
+SELECT 
+    product_id, 
+    CASE 
+        WHEN cnt > 1 THEN (SELECT price FROM CTE6 c2 WHERE c2.product_id = c1.product_id AND c2.change_date = '2019-08-16')
+        ELSE price
+    END AS price
+FROM CTE6 c1
+GROUP BY product_id, price, cnt, change_date
+HAVING (cnt > 1 AND change_date = '2019-08-16') OR cnt = 1;
+
+
 *******************************************************************************
-The best solution (ChatGPT):
+*******************************************************************************
+
+1204. Last Person to Fit in the Bus
+
+Table: Queue
+
++-------------+---------+
+| Column Name | Type    |
++-------------+---------+
+| person_id   | int     |
+| person_name | varchar |
+| weight      | int     |
+| turn        | int     |
++-------------+---------+
+person_id column contains unique values.
+This table has the information about all people waiting for a bus.
+The person_id and turn columns will contain all numbers from 1 to n, where n is the number of rows in the table.
+turn determines the order of which the people will board the bus, where turn=1 denotes the first person to board and turn=n denotes the last person to board.
+weight is the weight of the person in kilograms.
+ 
+
+There is a queue of people waiting to board a bus. However, the bus has a weight limit of 1000 kilograms, so there may be some people who cannot board.
+
+Write a solution to find the person_name of the last person that can fit on the bus without exceeding the weight limit. The test cases are generated such that the first person does not exceed the weight limit.
+
+The result format is in the following example.
+
+
+Example 1:
+
+Input: 
+Queue table:
++-----------+-------------+--------+------+
+| person_id | person_name | weight | turn |
++-----------+-------------+--------+------+
+| 5         | Alice       | 250    | 1    |
+| 4         | Bob         | 175    | 5    |
+| 3         | Alex        | 350    | 2    |
+| 6         | John Cena   | 400    | 3    |
+| 1         | Winston     | 500    | 6    |
+| 2         | Marie       | 200    | 4    |
++-----------+-------------+--------+------+
+Output: 
++-------------+
+| person_name |
++-------------+
+| John Cena   |
++-------------+
+Explanation: The folowing table is ordered by the turn for simplicity.
++------+----+-----------+--------+--------------+
+| Turn | ID | Name      | Weight | Total Weight |
++------+----+-----------+--------+--------------+
+| 1    | 5  | Alice     | 250    | 250          |
+| 2    | 3  | Alex      | 350    | 600          |
+| 3    | 6  | John Cena | 400    | 1000         | (last person to board)
+| 4    | 2  | Marie     | 200    | 1200         | (cannot board)
+| 5    | 4  | Bob       | 175    | ___          |
+| 6    | 1  | Winston   | 500    | ___          |
++------+----+-----------+--------+--------------+
+ChatGPT - pomale reseni:
 SELECT TOP 1 person_name
 FROM (
     SELECT person_name,
@@ -2283,21 +2467,26 @@ FROM Accumulation
 WHERE accumulator = (SELECT MAX(accumulator) FROM Accumulation);
 
 
-The worst solution (by ChatGPT):
-SELECT TOP 1
-    person_name
-FROM (
-    SELECT
-        q.person_name,
-        q.turn,
-        (SELECT SUM(weight) FROM Queue WHERE turn <= q.turn) AS total_weight
-    FROM
-        Queue q
-) AS accumulated
-WHERE
-    total_weight <= 1000
-ORDER BY
-    turn DESC;
+Moje a nejrychlejsi reseni:
+
+/* Write your T-SQL query statement below */
+WITH CTE1 AS
+(
+    SELECT turn, person_name, weight,
+    SUM(weight) OVER (ORDER BY turn ASC) AS CumulativeSum --tahle WF je eqv List.scan
+    FROM Queue 
+)
+SELECT DISTINCT
+    CASE
+        WHEN COUNT(turn) <= 2 THEN (SELECT TOP 1 person_name FROM CTE1 ORDER BY turn) 
+        ELSE
+            CASE 
+                WHEN (SELECT TOP 1 person_name FROM CTE1 WHERE CumulativeSum <= 1000 ORDER BY turn DESC) IS NULL 
+                THEN (SELECT TOP 1 person_name FROM CTE1 ORDER BY turn DESC)
+                ELSE (SELECT TOP 1 person_name FROM CTE1 WHERE CumulativeSum <= 1000 ORDER BY turn DESC)
+            END  
+    END AS person_name     
+FROM CTE1 
 
 
 ********************************************************
@@ -2351,6 +2540,7 @@ Low Salary: Account 2.
 Average Salary: No accounts.
 High Salary: Accounts 3, 6, and 8.
 
+Pomale reseni:
 
 WITH MyCTE AS
 (
@@ -2379,6 +2569,48 @@ FROM
 LEFT JOIN MyCTE ON categories.category = MyCTE.category
 GROUP BY categories.category
 ORDER BY accounts_count DESC;
+
+Rychlejsi reseni:
+WITH CTE1 AS
+(
+--pocitadlo
+SELECT
+    SUM(CASE WHEN income < 20000 THEN 1 ELSE 0 END) AS lowSalary,
+    SUM(CASE WHEN income BETWEEN 20000 AND 50000 THEN 1 ELSE 0 END) AS averageSalary,
+    SUM(CASE WHEN income > 50000 THEN 1 ELSE 0 END) AS highSalary
+FROM Accounts
+)
+
+SELECT 
+    (SELECT 'High Salary' AS category) AS category,
+    (SELECT highSalary FROM CTE1) AS accounts_count
+FROM CTE1  
+UNION ALL  
+SELECT 
+    (SELECT 'Low Salary' AS category) AS category,
+    (SELECT lowSalary FROM CTE1) AS accounts_count
+FROM CTE1  
+UNION ALL  
+SELECT 
+    (SELECT 'Average Salary' AS category) AS category,
+    (SELECT averageSalary FROM CTE1) AS accounts_count
+FROM CTE1  
+
+Stejne rychle je toto reseni s UNPIVOT: 
+WITH CTE1 AS
+(
+SELECT
+    SUM(CASE WHEN income < 20000 THEN 1 ELSE 0 END) AS 'Low Salary',
+    SUM(CASE WHEN income BETWEEN 20000 AND 50000 THEN 1 ELSE 0 END) AS 'Average Salary',
+    SUM(CASE WHEN income > 50000 THEN 1 ELSE 0 END) AS 'High Salary'
+FROM Accounts
+)
+
+SELECT category, accounts_count 
+FROM CTE1 
+UNPIVOT (accounts_count for category IN ([Low Salary], [Average Salary], [High Salary])) AS Unpivoted
+
+You can use the PIVOT and UNPIVOT relational operators to change a table-valued expression into another table. PIVOT rotates a table-valued expression by turning the unique values from one column in the expression into multiple columns in the output. And PIVOT runs aggregations where they're required on any remaining column values that are wanted in the final output. UNPIVOT carries out the opposite operation to PIVOT by rotating columns of a table-valued expression into column values.
 
 ******************************************************************************
 Table: Employees
@@ -2427,11 +2659,10 @@ The employees with a salary less than $30000 are 1 (Kalel) and 11 (Joziah).
 Kalel's manager is employee 11, who is still in the company (Joziah).
 Joziah's manager is employee 6, who left the company because there is no row for employee 6 as it was deleted.
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! e1.manager_id NOT IN (SELECT e1.employee_id FROM Employees e1)
-SELECT e1.employee_id 
-FROM Employees e1
-WHERE salary < 30000 AND e1.manager_id NOT IN (SELECT e1.employee_id FROM Employees e1)
-ORDER BY e1.employee_id
+SELECT employee_id
+FROM Employees
+WHERE salary < 30000 AND manager_id NOT IN (SELECT employee_id FROM Employees)
+ORDER BY employee_id;
 
 ******************************************
 
@@ -2505,6 +2736,82 @@ SELECT
     END AS student
 FROM 
     Seat;
+
+WITH CTE AS
+(
+    SELECT (id + 1) AS id, student
+    FROM Seat
+    WHERE id % 2 <> 0
+), CTE1 AS
+(
+    SELECT (id - 1) AS id, student
+    FROM Seat
+    WHERE id % 2 = 0
+), CTE2 AS
+(   
+    SELECT id, student
+    FROM CTE
+    UNION ALL
+    SELECT id, student
+    FROM CTE1
+)
+
+nejrychlejsi reseni ze vsech:
+WITH CTE AS
+(
+    SELECT (id + 1) AS id, student
+    FROM Seat
+    WHERE id % 2 <> 0
+), CTE1 AS
+(
+    SELECT (id - 1) AS id, student
+    FROM Seat
+    WHERE id % 2 = 0
+), CTE2 AS
+(   
+    SELECT id, student
+    FROM CTE
+    UNION 
+    SELECT id, student
+    FROM CTE1
+)
+
+SELECT DISTINCT 
+    CASE
+        WHEN (SELECT COUNT(student) % 2 FROM Seat) <> 0 AND id = (SELECT COUNT(student) FROM Seat) + 1 
+        THEN id - 1 
+        ELSE id
+    END AS id, student 
+ FROM CTE2 
+ GROUP BY id, student
+ ORDER BY id ASC
+
+
+nebo strucneji
+WITH CTE AS
+(
+    SELECT (id + 1) AS id, student
+    FROM Seat
+    WHERE id % 2 <> 0
+), CTE1 AS
+(
+    SELECT (id - 1) AS id, student
+    FROM Seat
+    WHERE id % 2 = 0
+    UNION ALL
+    SELECT id, student
+    FROM CTE
+)
+
+SELECT DISTINCT 
+    CASE
+        WHEN (SELECT COUNT(student) % 2 FROM Seat) <> 0 AND id = (SELECT COUNT(student) FROM Seat) + 1 
+        THEN id - 1 
+        ELSE id
+    END AS id, student 
+ FROM CTE1 
+ GROUP BY id, student
+ ORDER BY id ASC
 
 
 ******************************************************************************
