@@ -2931,6 +2931,122 @@ FROM
     ORDER BY (CAST(SUM(MR.rating) AS FLOAT) / CAST(COUNT(MR.user_id) AS FLOAT)) DESC, M.title ASC
 ) AS A2
 
+rychlejsi zcela moje reseni:
+WITH CTE AS
+(
+    SELECT mr.movie_id, m.title, mr.user_id, u.name, mr.rating, mr.created_at
+    FROM MovieRating mr
+    LEFT JOIN Users u
+    ON u.user_id = mr.user_id    
+    LEFT JOIN Movies m
+    ON m.movie_id = mr.movie_id   
+), CTE1 AS
+(
+    SELECT name, COUNT(user_id) AS count 
+    FROM CTE
+    GROUP BY name, user_id 
+), CTE2 AS
+(
+    SELECT MAX(count) AS max_count
+    FROM CTE1
+), CTE3 AS
+(
+    SELECT name, count 
+    FROM CTE1
+    WHERE (SELECT max_count FROM CTE2) = (SELECT count FROM CTE2)
+), CTE4 AS
+(
+    SELECT title, rating AS february_rating
+    FROM CTE
+    WHERE (created_at BETWEEN '2020-02-01' AND '2020-02-29') 
+), CTE5 AS
+(
+    SELECT title, AVG(CAST(february_rating AS FLOAT)) AS average_rating
+    FROM CTE4
+    GROUP BY title
+), CTE6 AS
+(
+    SELECT MAX(average_rating) AS highest_rating
+    FROM CTE5   
+), 
+CTE7 AS
+(
+    SELECT title  
+    FROM CTE5
+    WHERE (SELECT average_rating FROM CTE6) = (SELECT highest_rating FROM CTE6)
+), CTE8 AS
+(
+    SELECT TOP 1 name AS results FROM CTE3
+    ORDER BY name ASC
+    UNION ALL --film a user muze byt stejny retezec, proto ALL
+    SELECT TOP 1 title FROM CTE7
+    ORDER BY title ASC
+) 
+
+SELECT results FROM CTE8
+
+
+nyni refactoring meho kodu:
+
+WITH UserRatings AS
+(
+    SELECT 
+        u.name, 
+        COUNT(mr.user_id) AS count
+    FROM 
+        MovieRating mr
+    JOIN 
+        Users u ON u.user_id = mr.user_id    
+    GROUP BY 
+        u.name
+),
+MaxUserRatings AS
+(
+    SELECT 
+        name,
+        count,
+        RANK() OVER (ORDER BY count DESC, name ASC) AS rank
+    FROM 
+        UserRatings
+),
+FebruaryRatings AS
+(
+    SELECT 
+        m.title, 
+        AVG(CAST(mr.rating AS FLOAT)) AS average_rating
+    FROM 
+        MovieRating mr
+    JOIN 
+        Movies m ON m.movie_id = mr.movie_id   
+    WHERE 
+        mr.created_at BETWEEN '2020-02-01' AND '2020-02-29'
+    GROUP BY 
+        m.title
+),
+MaxFebruaryRatings AS
+(
+    SELECT 
+        title,
+        average_rating,
+        RANK() OVER (ORDER BY average_rating DESC, title ASC) AS rank
+    FROM 
+        FebruaryRatings
+)
+
+SELECT 
+    name AS results 
+FROM 
+    MaxUserRatings 
+WHERE 
+    rank = 1
+UNION ALL
+SELECT 
+    title 
+FROM 
+    MaxFebruaryRatings 
+WHERE 
+    rank = 1;
+
 *******************************************************************************
 
 Table: Customer
@@ -3019,6 +3135,31 @@ ORDER BY LastName: Orders the result set by the LastName column.
 OFFSET 5 ROWS: Skips the first 5 rows of the ordered result set.
 FETCH NEXT 10 ROWS ONLY: Fetches the next 10 rows from the ordered result set after skipping the first 5 rows.
 This query will return 10 rows of data starting from the 6th row (skipping the first 5 rows) of the Employees table, ordered by LastName.
+
+vcil moje vlastni reseni, je ale pomalejsi:
+WITH CTE0 AS
+(
+    SELECT visited_on, SUM(amount) AS amount 
+    FROM Customer
+    GROUP BY visited_on
+    ), CTE AS
+(
+    SELECT visited_on, 
+        SUM(amount) OVER (ORDER BY visited_on ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS amount,
+        ROUND(AVG(CAST(amount AS FLOAT)) OVER (ORDER BY visited_on ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS average_amount
+    FROM CTE0     
+), CTE1 AS
+(
+   SELECT visited_on FROM CTE0
+   ORDER BY visited_on
+   OFFSET 6 ROWS
+   FETCH NEXT 1 ROWS ONLY
+)
+
+SELECT visited_on, amount, average_amount
+FROM CTE
+WHERE visited_on >= (SELECT visited_on FROM CTE1)
+ORDER BY visited_on ASC 
 ************************************************************************************************
 
 Table: RequestAccepted
@@ -3109,6 +3250,25 @@ SELECT
         ) AS counts
     ) AS num;
 
+
+nove rychlejsi reseni:
+
+WITH CTE1 AS
+(
+    SELECT r2.accepter_id AS requester_id
+    FROM RequestAccepted r2
+    UNION ALL 
+    SELECT r1.requester_id  
+    FROM RequestAccepted r1   
+), CTE2 AS
+(
+    SELECT requester_id AS id, COUNT(requester_id) AS num FROM CTE1
+    GROUP BY requester_id
+)
+
+SELECT id, num FROM CTE2
+WHERE num = (SELECT MAX(num) FROM CTE2)
+
 ********************************************************
 
 Table: Insurance
@@ -3173,6 +3333,37 @@ FROM (
     FROM Insurance
 ) AS a
 WHERE tf > 1 AND numb = 1;
+
+
+rychlejsi reseni:
+
+WITH CTE_LatLon AS
+(
+    SELECT lat, lon
+    FROM Insurance
+    GROUP BY lat, lon
+    HAVING COUNT(*) = 1
+), CTE_TIV AS
+(
+    SELECT tiv_2015
+    FROM Insurance
+    GROUP BY tiv_2015
+    HAVING COUNT(*) >= 2
+)
+
+SELECT ROUND(SUM(tiv_2016), 2) AS tiv_2016
+FROM Insurance i
+WHERE EXISTS (
+    SELECT 1
+    FROM CTE_LatLon ll
+    WHERE ll.lat = i.lat AND ll.lon = i.lon
+)
+AND EXISTS (
+    SELECT 1
+    FROM CTE_TIV t
+    WHERE t.tiv_2015 = i.tiv_2015
+);
+
 
 *********************************************************
 
@@ -3274,6 +3465,36 @@ FROM RankedEmployees
 WHERE SalaryRank <= 3  -- Include all employees within the top 3 highest salaries per department
 ORDER BY Department, Salary DESC;
 
+moje rychlejsi reseni, nez vyse uvedene od ChatGPT:
+WITH CTE1 AS (
+    SELECT e.id AS Employee_Id, e.name AS Employee, e.salary AS Salary, d.name AS Department  
+    FROM Employee e
+    JOIN Department d
+    ON e.departmentId = d.id
+), CTE2 AS
+(
+    SELECT Department, Employee, Salary,
+        DENSE_RANK() OVER(PARTITION BY Department
+        ORDER BY Salary DESC) AS rn
+        --quli pozadavku na 3 unikatni vyplaty neni row_number
+    FROM CTE1
+), CTE3 AS
+(
+    SELECT Department, Employee, Salary, rn
+    FROM CTE2
+    WHERE rn <= 3
+)
+
+SELECT c2.Department, c2.Employee, c2.Salary
+FROM CTE2 c2
+-- toto bohuzel nelze ON c2.Salary IN c3.Salary AND c2.Department = c3.Department 
+-- proto slozitejsi kod s exists
+WHERE EXISTS (
+    SELECT 1
+    FROM CTE3 c3
+    WHERE c2.Salary = c3.Salary AND c2.Department = c3.Department
+);
+
 ********************************************************************************************************
 Table: Users
 
@@ -3327,6 +3548,21 @@ SELECT
 FROM TransformedUsers
 ORDER BY user_id;
 
+moje rychlejsi reseni:
+WITH CTE AS
+(
+    SELECT user_id, LOWER(name) AS name
+    FROM Users
+)
+
+SELECT user_id,
+(
+    CONCAT(UPPER(LEFT(name, 1)), SUBSTRING(name, 2, LEN(name) - 1))
+)
+AS name
+FROM CTE
+ORDER BY user_id
+
 ***************************************************************************
 Table: Patients
 
@@ -3376,6 +3612,10 @@ Explanation: Bob and George both have a condition that starts with DIAB1.
 SELECT patient_id, patient_name, conditions
 FROM Patients 
 WHERE conditions LIKE '% DIAB1%' OR LEFT(conditions, 5) = 'DIAB1';
+
+SELECT patient_id, patient_name, conditions
+FROM Patients 
+WHERE conditions LIKE 'DIAB1%' OR conditions LIKE '% DIAB1%' OR conditions LIKE '% DIAB1'
 
 ***********************************************************************************
 
@@ -3429,6 +3669,22 @@ WHERE id NOT IN (
     FROM Person
     GROUP BY email
 );
+
+nyni ChatGPT to zrobil rychlejsi, ale slozite:
+WITH DuplicateEmails AS (
+    SELECT email, MIN(id) AS KeepId
+    FROM Person
+    GROUP BY email
+    HAVING COUNT(email) > 1
+), ToDelete AS (
+    SELECT p.id
+    FROM Person p
+    LEFT JOIN DuplicateEmails de ON p.email = de.email
+    WHERE de.email IS NOT NULL AND p.id <> de.KeepId
+)
+
+DELETE FROM Person
+WHERE id IN (SELECT id FROM ToDelete);
 
 **********************************************************************************************
 
@@ -3490,6 +3746,21 @@ FROM (SELECT DISTINCT salary FROM employee) DerivedTable
 ORDER BY salary DESC;
 --In SQL, when you use a subquery in the FROM clause to create a derived table,
 --you need to provide an alias for that derived table. 
+
+moje vlastni reseni, ale zhruba stejne pomale, jako od ChatGPT:
+WITH CTE AS
+(
+    SELECT id, salary,
+        ROW_NUMBER() OVER(PARTITION BY salary ORDER BY salary DESC) AS rn
+    FROM Employee 
+)
+
+SELECT TOP 1
+    LEAD(salary, 1, NULL) OVER(ORDER BY salary DESC)
+    AS SecondHighestSalary
+FROM CTE
+WHERE rn = 1
+ORDER BY salary DESC
 *********************************************************************
 
 Table Activities:
@@ -3605,20 +3876,20 @@ FROM (
 GROUP BY sell_date
 ORDER BY sell_date;
 
+moje rychlejsi reseni:
+WITH CTE AS
+(
+    SELECT DISTINCT sell_date, product  
+    FROM Activities   
+), CTE1 AS
+(
+    SELECT sell_date, COUNT(product) AS num_sold, STRING_AGG(product, ',') AS products 
+    FROM CTE
+    GROUP BY sell_date  
+)
 
-/* tohle nedava spravny vysledek */
-SELECT DISTINCT sell_date, 
-(
-    COUNT(sell_date)
-)
-AS num_sold, 
-(
-    STRING_AGG(DISTINCT product, ',') WITHIN GROUP (ORDER BY product ASC) 
-)
-AS products 
-FROM Activities //s timhle mame stale 2x Mask
-GROUP BY sell_date   
-ORDER BY sell_date
+SELECT * FROM CTE1
+ORDER BY sell_date;
 
 ***************************************************************************************
 
@@ -3773,6 +4044,24 @@ ON p.product_id = o.product_id
 WHERE o.order_date BETWEEN '2020-02-01' AND '2020-02-29'
 GROUP BY p.product_id, p.product_name
 HAVING SUM(o.unit) >= 100;
+
+muj delsi kod, ale 2x rychlejsi:
+WITH CTE AS
+(
+    SELECT p.product_id, p.product_name, p.product_category, o.order_date, o.unit
+    FROM Products p
+    JOIN Orders o -- LEFT JOIN -- FULL OUTER JOIN
+    ON p.product_id = o.product_id AND o.order_date BETWEEN '2020-02-01' AND '2020-02-29' 
+)
+
+SELECT product_name, 
+(
+    SUM(unit)
+)
+AS unit 
+FROM CTE
+GROUP BY product_name
+HAVING SUM(unit) >= 100 AND product_name IS NOT NULL
 
 **************************************************************************************************************
 
