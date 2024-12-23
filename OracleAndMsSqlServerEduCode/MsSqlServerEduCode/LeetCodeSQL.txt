@@ -61,6 +61,28 @@ SELECT id
 FROM MyCTE
 WHERE id IS NOT NULL;
 
+O neco rychlejsi reseni:
+
+WITH MyCTE AS
+(
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY recordDate ASC) AS idOrdered,
+        id, 
+        recordDate, 
+        temperature
+    FROM Weather
+)
+SELECT 
+    CASE 
+        WHEN w1.temperature - w2.temperature = 0 THEN w2.id 
+        ELSE w1.id 
+    END AS id
+FROM MyCTE w1
+JOIN MyCTE w2
+ON w1.idOrdered = w2.idOrdered + 1
+WHERE w2.temperature < w1.temperature AND DATEDIFF(DAY, w2.recordDate, w1.recordDate) = 1
+ORDER BY w1.recordDate;
+
 
 ****************************************************************************************************
 
@@ -95,7 +117,6 @@ Return the result table in any order.
 The result format is in the following example.
 
  
-
 Example 1:
 
 Input: 
@@ -198,6 +219,21 @@ WITH MyCTE AS
     FROM MyCTE
     WHERE timestampDiff IS NOT NULL
 )
+
+nebo zatim nejrychlejsi reseni
+
+WITH MyCTE AS
+(
+SELECT machine_id, 
+    (timestamp - LAG(timestamp, 1) OVER (ORDER BY process_id)) AS timestampDifference,
+    ROW_NUMBER() OVER (ORDER BY machine_id ASC) AS idOrdered
+FROM Activity 
+GROUP BY process_id, machine_id, timestamp  
+)
+SELECT DISTINCT machine_id, ROUND(AVG(timestampDifference ) OVER (PARTITION BY machine_id), 3) AS processing_time 
+FROM MyCTE
+WHERE idOrdered % 2 = 0
+ORDER BY machine_id  
 
 
 *********************************************************************
