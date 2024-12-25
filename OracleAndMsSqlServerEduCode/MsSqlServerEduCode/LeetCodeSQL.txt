@@ -261,16 +261,13 @@ Table: Bonus
 +-------------+------+
 empId is the column of unique values for this table.
 empId is a foreign key (reference column) to empId from the Employee table.
-Each row of this table contains the id of an employee and their respective bonus.
- 
+Each row of this table contains the id of an employee and their respective bonus. 
 
 Write a solution to report the name and bonus amount of each employee with a bonus less than 1000.
 
 Return the result table in any order.
 
-The result format is in the following example.
-
- 
+The result format is in the following example. 
 
 Example 1:
 
@@ -369,9 +366,7 @@ Write a solution to find the number of times each student attended each exam.
 Return the result table ordered by student_id and subject_name.
 
 The result format is in the following example.
-
  
-
 Example 1:
 
 Input: 
@@ -449,6 +444,42 @@ GROUP BY
 ORDER BY 
     s.student_id, sub.subject_name;
 
+Moje reseni (rychlesi nez vyse) s malou pomoci ChatGPT v tomto:
+- (SELECT DISTINCT subject_name FROM CompleteExaminations) sb 
+ - ON ss.student_id = e.student_id AND ss.subject_name = e.subject_name
+
+takze cele:
+
+WITH CompleteExaminations AS
+(
+    SELECT e.student_id, ss.subject_name            
+    FROM Subjects ss
+    LEFT JOIN Examinations e
+    ON ss.subject_name = e.subject_name
+),
+StudentsSubjects AS
+(
+    SELECT st.student_id, st.student_name, sb.subject_name
+    FROM Students st
+    CROSS JOIN 
+    (SELECT DISTINCT subject_name FROM CompleteExaminations) sb
+),
+MyCTE AS
+(
+    SELECT ss.student_id, ss.student_name, ss.subject_name, 
+           e.subject_name AS attended_subject
+    FROM StudentsSubjects ss
+    LEFT JOIN CompleteExaminations e
+    ON ss.student_id = e.student_id AND ss.subject_name = e.subject_name
+)
+SELECT DISTINCT
+    student_id,
+    student_name,
+    subject_name,
+    COUNT(attended_subject) OVER (PARTITION BY student_id, subject_name) AS attended_exams
+FROM MyCTE
+ORDER BY student_id, subject_name;
+
 *****************************************************************
 Table: Employee
 
@@ -471,7 +502,6 @@ Write a solution to find managers with at least five direct reports.
 Return the result table in any order.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -501,6 +531,22 @@ JOIN Employee e2
 ON e2.managerId = e1.id
 GROUP BY e1.id, e1.name
 HAVING COUNT(e2.id) >= 5;
+
+dalsi napad:
+WITH MyCTE AS
+(
+    SELECT e1.id, e1.name, e1.managerId   
+    FROM Employee e1
+    INNER JOIN Employee e2
+    ON e1.id = e2.managerId
+)
+
+SELECT cte.name
+FROM Employee e
+LEFT JOIN MyCTE cte
+ON cte.id = e.managerId
+GROUP BY cte.id, cte.name
+HAVING COUNT(e.managerId) >= 5 AND cte.name IS NOT NULL;
 
 ***************************************************************************************************************
 
