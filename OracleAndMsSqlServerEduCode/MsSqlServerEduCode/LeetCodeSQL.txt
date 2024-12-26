@@ -720,6 +720,36 @@ SELECT s.user_id,
 FROM Signups s
 LEFT JOIN MyCTE cte ON s.user_id = cte.user_id;
 
+o hodne pomalejsi reseni
+WITH MyCTE AS
+(
+    SELECT s.user_id, c.action    
+    FROM Signups s
+    LEFT JOIN Confirmations c
+    ON s.user_id = c.user_id 
+),
+MyCTE1 AS
+(
+    SELECT user_id, COUNT(*) AS total    
+    FROM MyCTE
+    GROUP BY user_id
+),
+ConfirmationCounts AS
+(
+    SELECT user_id, COUNT(*) AS confirmed_count
+    FROM MyCTE
+    WHERE action = 'confirmed'
+    GROUP BY user_id
+)
+
+SELECT DISTINCT 
+    c1.user_id,
+    COALESCE(ROUND(CAST(cc.confirmed_count AS FLOAT) / c1.total, 2), 0) AS confirmation_rate
+FROM MyCTE1 c1
+LEFT JOIN ConfirmationCounts cc
+ON c1.user_id = cc.user_id
+ORDER BY c1.user_id;
+
 ********************************************************************************
 Table: Prices
 
