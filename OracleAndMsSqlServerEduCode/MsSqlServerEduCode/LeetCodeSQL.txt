@@ -844,6 +844,48 @@ LEFT JOIN UnitsSold u
 ON p.product_id = u.product_id 
 AND u.purchase_date BETWEEN p.start_date AND p.end_date
 GROUP BY p.product_id;
+
+Horsi reseni:
+WITH AggregatedUnits AS (
+    SELECT 
+        product_id, 
+        purchase_date, 
+        SUM(units) AS total_units
+    FROM 
+        UnitsSold
+    GROUP BY 
+        product_id, purchase_date
+),
+MyCTE AS (
+    SELECT 
+        p.product_id, 
+        u.total_units, 
+        p.price
+    FROM 
+        Prices p
+    LEFT JOIN 
+        AggregatedUnits u
+    ON 
+        p.product_id = u.product_id 
+        AND u.purchase_date BETWEEN p.start_date AND p.end_date
+),
+CalculatedAverages AS (
+    SELECT 
+        product_id,
+        ROUND(
+            SUM(CAST(total_units AS FLOAT) * CAST(price AS FLOAT)) OVER (PARTITION BY product_id),
+            2
+        ) / NULLIF(SUM(CAST(total_units AS FLOAT)) OVER (PARTITION BY product_id), 0)
+        AS computed_average_price
+    FROM 
+        MyCTE
+)
+SELECT DISTINCT 
+    product_id, 
+    ROUND(COALESCE(computed_average_price, 0), 2) AS average_price 
+FROM 
+    CalculatedAverages;
+
 ****************************************************************************************************
 
 Table: Project
@@ -928,6 +970,24 @@ LEFT JOIN Employee e
 ON p.employee_id = e.employee_id 
 GROUP BY p.project_id;
 
+dalsi reseni:
+WITH MyCTE AS
+(
+    SELECT p.project_id, p.employee_id, e.experience_years
+    FROM Project p
+    INNER JOIN Employee e
+    ON e.employee_id = p.employee_id 
+)
+SELECT project_id, 
+(
+    --ROUND(AVG(CAST(experience_years AS FLOAT)), 2) -- zaokrouhluje jinak, nez nize uvedene
+    
+    ROUND(AVG(CAST(experience_years AS DECIMAL(10,2))), 2)
+)
+AS average_years
+FROM MyCTE
+GROUP BY project_id 
+ORDER BY project_id
 ***********************************************************************
 
 Table: Users
@@ -959,8 +1019,6 @@ Write a solution to find the percentage of the users registered in each contest 
 Return the result table ordered by percentage in descending order. In case of a tie, order it by contest_id in ascending order.
 
 The result format is in the following example.
-
- 
 
 Example 1:
 
@@ -1014,7 +1072,6 @@ WITH TotalUsers AS (
         Users
 )
 
-
 SELECT 
     r.contest_id,
     ROUND((COUNT(r.user_id) * 100.0 / (SELECT total_users FROM TotalUsers)), 2) AS [percentage]
@@ -1043,6 +1100,21 @@ FULL OUTER JOIN Users u
 ON u.user_id IS NOT NULL 
 GROUP BY cte.contest_id, cte.count 
 ORDER BY [percentage] DESC, cte.contest_id ASC
+
+lepsi a rychlejsi je toto:
+SELECT contest_id,  
+    ( 
+        ROUND(
+            CAST(
+                (COUNT(contest_id) * 100.00) / (SELECT COUNT(user_id) FROM Users) 
+                AS DECIMAL(10, 2)
+                 ), 2
+            )
+    )
+AS percentage 
+FROM Register 
+GROUP BY contest_id 
+ORDER BY percentage DESC, contest_id ASC 
 
 *************************************************************************************
 
@@ -1077,7 +1149,6 @@ Both quality and poor_query_percentage should be rounded to 2 decimal places.
 Return the result table in any order.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -1152,6 +1223,26 @@ SELECT cte1.query_name, cte1.quality, cte2.poor_query_percentage
 FROM MyCTE2 cte2
 JOIN MyCTE1 cte1
 ON cte1.query_name = cte2.query_name;
+
+tohle take funguje, ale je to pomale:
+WITH MyCTE AS (
+    SELECT 
+        query_name, 
+        position, 
+        rating,
+        CASE
+            WHEN rating < 3 THEN 1 
+            ELSE 0 
+        END AS poor_rating
+    FROM Queries    
+)
+SELECT 
+    query_name,
+    ROUND(SUM(CAST(rating AS FLOAT) / CAST(position AS FLOAT)) / CAST(COUNT(query_name) AS FLOAT), 2) AS quality,
+    ROUND(CAST(SUM(poor_rating) AS FLOAT) / CAST(COUNT(query_name) AS FLOAT) * 100.00, 2) AS poor_query_percentage
+FROM MyCTE
+GROUP BY query_name
+ORDER BY query_name DESC
 
 ******************************************************************************************************
 
