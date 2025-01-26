@@ -61,7 +61,7 @@ ON ProductionOrder
 AFTER UPDATE
 AS
 BEGIN
-    SET NOCOUNT ON;
+    SET NOCOUNT ON; --When SET NOCOUNT is set to ON, it prevents SQL Server from sending messages like "(N row(s) affected)" to the client after executing INSERT, UPDATE, DELETE, or SELECT. May improve performance.
 
     -- Check if Quantity column is updated
     IF UPDATE(Quantity)

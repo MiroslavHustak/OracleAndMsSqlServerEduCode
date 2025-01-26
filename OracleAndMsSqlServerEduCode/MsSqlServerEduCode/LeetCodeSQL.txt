@@ -1531,6 +1531,27 @@ SELECT ROUND(SUM(CONVERT(FLOAT, fraction)), 2) AS fraction
 FROM CTE2
 
 
+dalsi reseni, ale pomale:
+WITH LaggedActivity AS (
+    SELECT player_id, 
+           event_date,
+           ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY event_date) AS RowNum,
+           LAG(event_date) OVER (PARTITION BY player_id ORDER BY event_date) AS previous_date
+    FROM Activity
+),
+ConsecutiveDays AS (
+    SELECT player_id
+    FROM LaggedActivity
+    WHERE DATEDIFF(day, previous_date, event_date) = 1 AND previous_date IS NOT NULL 
+          AND RowNum = 2  -- Ensures we are looking at the second event (after the first login)
+)
+SELECT 
+    ROUND(
+        CAST(COUNT(DISTINCT player_id) AS FLOAT) / 
+        CAST((SELECT COUNT(DISTINCT player_id) FROM Activity) AS FLOAT), 
+    2) AS fraction
+FROM ConsecutiveDays;
+
 
 ***********************************************************************************
 
@@ -1763,7 +1784,7 @@ Output:
 | 200        | 2011       | 15       | 9000  |
 +------------+------------+----------+-------+
 
-CAsove neakceptovana reseni:
+Casove neakceptovana reseni:
 
 WITH MyCTE AS
 (
@@ -1785,6 +1806,23 @@ JOIN (
     FROM Sales
     GROUP BY product_id
 ) t ON s.product_id = t.product_id AND s.year = t.min_year;
+
+Je zajimave, ze tohle je casove nevyhovujici, aji kdyz je to v podstate stejne, jako reseni s CTE:
+SELECT 
+    product_id, 
+    first_year AS first_year, 
+    quantity, 
+    price
+FROM (
+    SELECT 
+        product_id, 
+        year AS first_year, 
+        quantity, 
+        price, 
+        RANK() OVER (PARTITION BY product_id ORDER BY year) AS rank_position
+    FROM Sales
+) AS RankedSales
+WHERE rank_position = 1;
 
 
 Moje casove vyhovujici reseni:
@@ -1921,6 +1959,12 @@ FROM Followers
 GROUP BY user_id
 ORDER BY user_id ASC
 
+nebo take
+SELECT user_id, COUNT(user_id) AS followers_count
+FROM Followers 
+WHERE follower_id IS NOT NULL
+GROUP BY user_id
+
 ********************************************************************************
 
 Table: MyNumbers
@@ -2016,6 +2060,16 @@ WITH CTE AS
 
 SELECT MAX(num) AS num
 FROM CTE
+
+tady je equivalent vyse uvedeneho jako derived table. Vsimni si povinneho SubQuery
+SELECT MAX(num) AS num
+FROM
+(
+    SELECT num
+    FROM MyNumbers 
+    GROUP BY num
+    HAVING COUNT(num) = 1
+) AS SubQuery;
 
 ******************************************************************************************************
 

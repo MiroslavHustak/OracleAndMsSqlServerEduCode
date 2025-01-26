@@ -175,6 +175,6 @@ let internal selectValues4Lines getConnection closeConnection =
             closeConnection connection //just in case :-) 
     with
     | ex ->
-            printfn "%s" ex.Message
-            Error ex.Message
+         printfn "%s" ex.Message
+         Error ex.Message
 
