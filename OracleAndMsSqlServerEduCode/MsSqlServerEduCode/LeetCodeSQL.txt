@@ -2168,6 +2168,29 @@ FROM CTE
 GROUP BY customer_id, total_count
 HAVING COUNT(customer_id) = total_count;
 
+
+nebo take takto:
+s CTE
+WITH MyCTE AS
+(
+    SELECT DISTINCT customer_id, product_key 
+    FROM Customer 
+)
+
+SELECT customer_id  
+FROM MyCTE 
+GROUP BY customer_id  
+HAVING COUNT(customer_id) = (SELECT COUNT(product_key) FROM Product)
+
+...nebo s derived table
+SELECT customer_id  
+FROM (  
+    SELECT DISTINCT customer_id, product_key  
+    FROM Customer  
+) AS DistinctCustomer  
+GROUP BY customer_id  
+HAVING COUNT(product_key) = (SELECT COUNT(product_key) FROM Product);
+
 **********************************************************************************
 
 
@@ -2192,7 +2215,6 @@ Write a solution to report the ids and the names of all managers, the number of 
 Return the result table ordered by employee_id.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -2274,6 +2296,23 @@ FROM CTE c
 LEFT JOIN Employees e 
 ON c.manager_id = e.employee_id 
 ORDER BY c.manager_id
+
+nebo baj takto:
+
+WITH MyCTE AS (
+    SELECT reports_to, age 
+    FROM Employees 
+    WHERE reports_to IS NOT NULL
+)
+
+SELECT e.employee_id, e.name,
+    COUNT(c.reports_to) AS reports_count,
+    ROUND(AVG(CAST(c.age AS FLOAT)), 0) AS average_age
+FROM Employees e
+INNER JOIN MyCTE c
+ON c.reports_to = e.employee_id 
+GROUP BY e.employee_id, e.name 
+ORDER BY e.employee_id ASC
 
 *********************************************************************************************************
 
