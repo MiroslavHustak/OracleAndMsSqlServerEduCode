@@ -2338,7 +2338,6 @@ Write a solution to report all the employees with their primary department. For 
 Return the result table in any order.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -2398,6 +2397,20 @@ WITH CTE AS
 SELECT employee_id, department_id
 FROM CTE 
 WHERE department_id IS NOT NULL;
+
+Dalsi reseni:
+WITH MyCTE AS
+(
+    SELECT DISTINCT employee_id, department_id,
+        ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY primary_flag DESC) AS myRank
+    FROM Employee
+)
+
+SELECT employee_id, department_id      
+FROM MyCTE
+WHERE myRank = 1
+
+The query using ROW_NUMBER() in a CTE will likely perform better, especially on larger datasets, because it avoids the expensive aggregation and distinct operations.
 
 *************************************************************************
 Table: Triangle
