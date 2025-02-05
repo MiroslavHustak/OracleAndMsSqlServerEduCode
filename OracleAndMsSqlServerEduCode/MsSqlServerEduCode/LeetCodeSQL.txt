@@ -2496,7 +2496,6 @@ Find all numbers that appear at least three times consecutively.
 Return the result table in any order.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -2552,6 +2551,19 @@ FROM CTE
 WHERE 
     num_2 = num_1 AND num_2 = num_0 AND 
     (id_2 + 1) = id_1 AND (id_1 + 1) = id_0;
+
+Tohle vypada jednodussi:
+WITH Consecutive AS (
+SELECT 
+    num,
+    LEAD(num) OVER (ORDER BY id) AS next_num,
+    LAG(num) OVER (ORDER BY id) AS prev_num
+FROM Logs
+)
+
+SELECT DISTINCT num AS ConsecutiveNums
+FROM Consecutive
+WHERE num = next_num AND num = prev_num
 
 *************************************
 
