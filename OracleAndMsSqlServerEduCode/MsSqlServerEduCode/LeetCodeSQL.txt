@@ -2879,7 +2879,6 @@ The result table must contain all three categories. If there are no accounts in 
 Return the result table in any order.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -2979,6 +2978,37 @@ UNPIVOT (accounts_count for category IN ([Low Salary], [Average Salary], [High S
 
 You can use the PIVOT and UNPIVOT relational operators to change a table-valued expression into another table. PIVOT rotates a table-valued expression by turning the unique values from one column in the expression into multiple columns in the output. And PIVOT runs aggregations where they're required on any remaining column values that are wanted in the final output. UNPIVOT carries out the opposite operation to PIVOT by rotating columns of a table-valued expression into column values.
 
+A jeste nejake dalsi reseni, zrejme pomale:
+WITH MyCTE AS
+(
+    SELECT account_id, income, 
+        CASE 
+            WHEN income < 20000 THEN 'Low Salary' 
+            WHEN income > 50000 THEN 'High Salary' 
+            WHEN income >= 20000 AND income <= 50000 THEN 'Average Salary' 
+            ELSE NULL 
+        END AS category   
+    FROM Accounts
+),
+Categories1 AS
+(
+SELECT category, COUNT(category) AS accounts_count 
+FROM MyCTE
+GROUP BY category
+),
+Categories AS (
+    SELECT 'High Salary' AS category
+    UNION ALL
+    SELECT 'Low Salary'
+    UNION ALL
+    SELECT 'Average Salary'
+)
+SELECT c.category, 
+       COALESCE(a.accounts_count, 0) AS accounts_count
+FROM Categories c
+LEFT JOIN Categories1 a 
+ON c.category = a.category;
+
 ******************************************************************************
 Table: Employees
 
@@ -3051,8 +3081,6 @@ Write a solution to swap the seat id of every two consecutive students. If the n
 Return the result table ordered by id in ascending order.
 
 The result format is in the following example.
-
- 
 
 Example 1:
 
@@ -3179,6 +3207,27 @@ SELECT DISTINCT
  FROM CTE1 
  GROUP BY id, student
  ORDER BY id ASC
+
+
+A naposledy nejkratsi reseni ze vseho (navic uplne moje, bez GPT):
+WITH MyCTE AS
+(
+    SELECT 
+        CASE
+            WHEN id % 2 <> 0 THEN id + 1 ELSE id - 1
+        END AS id, student, (SELECT COUNT(*) FROM Seat) AS count 
+    FROM Seat
+)
+
+SELECT 
+    CASE
+        WHEN MAX(count) % 2 <> 0 AND id = count + 1
+            THEN count
+            ELSE id
+    END AS id, student 
+FROM MyCTE
+GROUP BY id, student, count   
+ORDER BY id
 
 
 ******************************************************************************
