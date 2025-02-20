@@ -3463,6 +3463,50 @@ FROM
 WHERE 
     rank = 1;
 
+
+S pomoci ChatGPT
+WITH UserRatings AS (
+    -- Count the number of movies rated by each user
+    SELECT u.name, COUNT(mr.movie_id) AS rating_count
+    FROM Users u
+    JOIN MovieRating mr ON u.user_id = mr.user_id
+    GROUP BY u.name
+),
+MaxUser AS (
+    -- Find the user with the most ratings (handling ties by lexicographical order)
+    SELECT TOP 1 name
+    FROM UserRatings
+    WHERE rating_count = (SELECT MAX(rating_count) FROM UserRatings)
+    ORDER BY name ASC
+),
+FilteredMovies AS (
+    -- Select only ratings from February 2020
+    SELECT m.title, mr.rating
+    FROM MovieRating mr
+    JOIN Movies m ON mr.movie_id = m.movie_id
+    WHERE mr.created_at BETWEEN '2020-02-01' AND '2020-02-29'
+),
+RankedMovies AS (
+    -- Calculate the average rating for each movie in February 2020
+    SELECT title, AVG(CAST(rating AS FLOAT)) AS avg_rating
+    FROM FilteredMovies
+    GROUP BY title
+),
+MaxMovie AS (
+    -- Find the movie with the highest average rating (handling ties by lexicographical order)
+    SELECT TOP 1 title
+    FROM RankedMovies
+    WHERE avg_rating = (SELECT MAX(avg_rating) FROM RankedMovies)
+    ORDER BY title ASC
+)
+-- Combine both results into a single output
+SELECT name AS results FROM MaxUser
+UNION ALL
+SELECT title AS results FROM MaxMovie;
+
+
+
+
 *******************************************************************************
 
 Table: Customer
