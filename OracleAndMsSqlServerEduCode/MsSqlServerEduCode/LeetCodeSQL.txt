@@ -3505,8 +3505,6 @@ UNION ALL
 SELECT title AS results FROM MaxMovie;
 
 
-
-
 *******************************************************************************
 
 Table: Customer
@@ -3620,6 +3618,39 @@ SELECT visited_on, amount, average_amount
 FROM CTE
 WHERE visited_on >= (SELECT visited_on FROM CTE1)
 ORDER BY visited_on ASC 
+
+dalsi reseni, castecne s ChatGPT
+WITH DailyTotals AS (
+    -- Aggregate data per day to avoid duplicate sums
+    SELECT 
+        visited_on, 
+        SUM(amount) AS daily_amount
+    FROM Customer
+    GROUP BY visited_on
+),
+MyCTE AS (
+    -- Apply window functions on daily aggregated data
+    SELECT 
+        visited_on,
+        ROW_NUMBER() OVER (ORDER BY visited_on) AS rn, -- Add row numbers to track days
+        SUM(daily_amount) OVER (
+            ORDER BY visited_on 
+            ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+        ) AS running_amount,
+        AVG(CAST(daily_amount AS DECIMAL(10,2))) OVER (
+            ORDER BY visited_on 
+            ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+        ) AS running_avg  
+    FROM DailyTotals
+)
+SELECT 
+    visited_on, 
+    running_amount AS amount,  
+    ROUND(running_avg, 2) AS average_amount  
+FROM MyCTE
+WHERE rn >= 7 
+ORDER BY visited_on;
+
 ************************************************************************************************
 
 Table: RequestAccepted
@@ -3758,8 +3789,6 @@ Round tiv_2016 to two decimal places.
 
 The result format is in the following example.
 
- 
-
 Example 1:
 
 Input: 
@@ -3794,7 +3823,6 @@ FROM (
 ) AS a
 WHERE tf > 1 AND numb = 1;
 
-
 rychlejsi reseni:
 
 WITH CTE_LatLon AS
@@ -3823,6 +3851,34 @@ AND EXISTS (
     FROM CTE_TIV t
     WHERE t.tiv_2015 = i.tiv_2015
 );
+
+Dalsi reseni
+WITH MyCTE AS
+(
+    SELECT tiv_2016, pid, lat, lon
+    FROM Insurance
+    WHERE tiv_2015 IN (
+        SELECT tiv_2015
+        FROM Insurance
+        GROUP BY tiv_2015
+        HAVING COUNT(tiv_2015) > 1
+    )
+    AND lat IN (
+        SELECT lat
+        FROM Insurance
+        GROUP BY lat, lon
+        HAVING COUNT(lat) = 1
+    )
+    AND lon IN (
+        SELECT lon
+        FROM Insurance
+        GROUP BY lat, lon
+        HAVING COUNT(lon) = 1
+    )
+)
+
+SELECT ROUND (SUM(tiv_2016), 2) AS tiv_2016
+FROM MyCTE
 
 
 *********************************************************
