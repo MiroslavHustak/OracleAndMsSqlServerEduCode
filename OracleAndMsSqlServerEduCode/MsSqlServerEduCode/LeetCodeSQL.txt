@@ -4011,6 +4011,20 @@ WHERE EXISTS (
     WHERE c2.Salary = c3.Salary AND c2.Department = c3.Department
 );
 
+dalsi reseni vetsinou s pomoci ChatGPT, bo mne to nebavilo
+
+WITH RankedEmployees AS (
+    SELECT e.id, e.name AS Employee, e.salary, e.departmentId, d.name AS Department,
+           DENSE_RANK() OVER (PARTITION BY e.departmentId ORDER BY e.salary DESC) AS Rank
+    FROM Employee e
+    INNER JOIN Department d
+    ON e.departmentId = d.id  
+)
+SELECT Department, Employee, Salary
+FROM RankedEmployees
+WHERE Rank <= 3
+ORDER BY Department, Salary DESC;
+
 ********************************************************************************************************
 Table: Users
 
