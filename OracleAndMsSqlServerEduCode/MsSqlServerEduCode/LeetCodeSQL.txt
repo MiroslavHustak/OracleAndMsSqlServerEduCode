@@ -4063,22 +4063,17 @@ Output:
 | 2       | Bob   |
 +---------+-------+
 
-/* Write your T-SQL query statement below */
-WITH TransformedUsers AS (
-    SELECT 
-        user_id,       
-        LOWER([name]) AS lower_case_name,
-        UPPER(LEFT([name], 1)) AS upper_first_letter
-    FROM Users
+WITH MyCTE AS
+(
+    SELECT user_id, LOWER(name) AS name, UPPER(LEFT(name, 1)) AS first_char
+    FROM Users 
 )
 
-SELECT 
-    user_id,
-    STUFF(lower_case_name, 1, 1, upper_first_letter) AS [name]
-FROM TransformedUsers
-ORDER BY user_id;
+SELECT user_id, STUFF(name, 1, 1, first_char) AS name
+FROM MyCTE 
+ORDER BY user_id
 
-moje rychlejsi reseni:
+udajne rychlejsi reseni:
 WITH CTE AS
 (
     SELECT user_id, LOWER(name) AS name
@@ -4114,8 +4109,6 @@ Return the result table in any order.
 
 The result format is in the following example.
 
- 
-
 Example 1:
 
 Input: 
@@ -4147,6 +4140,10 @@ SELECT patient_id, patient_name, conditions
 FROM Patients 
 WHERE conditions LIKE 'DIAB1%' OR conditions LIKE '% DIAB1%' OR conditions LIKE '% DIAB1'
 
+SELECT patient_id, patient_name, conditions
+FROM Patients
+WHERE LEFT(conditions, 5) = 'DIAB1' OR CHARINDEX(' DIAB1', conditions) > 0
+
 ***********************************************************************************
 
 Table: Person
@@ -4170,8 +4167,6 @@ For Pandas users, please note that you are supposed to modify Person in place.
 After running your script, the answer shown is the Person table. The driver will first compile and run your piece of code and then show the Person table. The final order of the Person table does not matter.
 
 The result format is in the following example.
-
- 
 
 Example 1:
 
@@ -4200,7 +4195,19 @@ WHERE id NOT IN (
     GROUP BY email
 );
 
-nyni ChatGPT to zrobil rychlejsi, ale slozite:
+nebo dalsi moje reseni:
+
+WITH MyCTE AS
+(
+    SELECT    
+    id, email, ROW_NUMBER() OVER (PARTITION BY email ORDER BY id) AS rn 
+    FROM Person
+)
+
+DELETE FROM MyCTE
+WHERE rn <> 1
+
+nyni ChatGPT to zrobil udajne rychlejsi, ale slozite:
 WITH DuplicateEmails AS (
     SELECT email, MIN(id) AS KeepId
     FROM Person
@@ -4233,9 +4240,7 @@ Each row of this table contains information about the salary of an employee.
 Write a solution to find the second highest salary from the Employee table. If there is no second highest salary, return null (return None in Pandas).
 
 The result format is in the following example.
-
  
-
 Example 1:
 
 Input: 
@@ -4269,8 +4274,6 @@ Output:
 | null                |
 +---------------------+
 
-
-/* Write your T-SQL query statement below */
 SELECT TOP 1 LEAD(salary) OVER (ORDER BY salary DESC) AS SecondHighestSalary 
 FROM (SELECT DISTINCT salary FROM employee) DerivedTable
 ORDER BY salary DESC;
@@ -4291,6 +4294,29 @@ SELECT TOP 1
 FROM CTE
 WHERE rn = 1
 ORDER BY salary DESC
+
+dalsi reseni, castecne s pomoci ChatGPT
+WITH MyCTE AS
+(
+    SELECT    
+        salary, 
+        DENSE_RANK() OVER (ORDER BY salary DESC) AS rnk 
+    FROM Employee
+),
+
+FilteredCTE AS
+(
+    SELECT MAX(salary) AS SecondHighestSalary
+    FROM MyCTE
+    WHERE rnk = 2
+)
+
+SELECT 
+    CASE 
+        WHEN (SELECT COUNT(*) FROM FilteredCTE) = 0 THEN NULL 
+        ELSE (SELECT SecondHighestSalary FROM FilteredCTE) 
+    END AS SecondHighestSalary
+
 *********************************************************************
 
 Table Activities:
@@ -4312,8 +4338,6 @@ The sold products names for each date should be sorted lexicographically.
 Return the result table ordered by sell_date.
 
 The result format is in the following example.
-
- 
 
 Example 1:
 
@@ -4364,7 +4388,6 @@ The sold products names for each date should be sorted lexicographically.
 Return the result table ordered by sell_date.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -4421,6 +4444,14 @@ WITH CTE AS
 SELECT * FROM CTE1
 ORDER BY sell_date;
 
+--dalsi moje reseni (ono v podstate varianta vyse uvedeneho, jen s derived table misto CTE):
+SELECT sell_date, COUNT(*) AS num_sold, STRING_AGG (product, ',') AS products
+FROM (
+    SELECT DISTINCT sell_date, product
+    FROM Activities
+) AS DistinctActivities
+GROUP BY sell_date  
+
 ***************************************************************************************
 
  |
@@ -4439,8 +4470,6 @@ Write a solution to get the names of products that have at least 100 units order
 Return the result table in any order.
 
 The result format is in the following example.
-
- 
 
 Example 1:
 
@@ -4519,7 +4548,6 @@ Write a solution to get the names of products that have at least 100 units order
 Return the result table in any order.
 
 The result format is in the following example.
-
  
 
 Example 1:
@@ -4593,6 +4621,20 @@ FROM CTE
 GROUP BY product_name
 HAVING SUM(unit) >= 100 AND product_name IS NOT NULL
 
+trochu to lze zkratit:
+WITH MyCTE AS
+(
+    SELECT p.product_name, o.unit 
+    FROM Products p
+    INNER JOIN Orders o
+    ON p.product_id = o.product_id AND o.order_date BETWEEN '2020-02-01' AND '2020-02-29'  
+)
+
+SELECT product_name, SUM(unit) AS unit
+FROM MyCTE
+GROUP BY product_name
+HAVING SUM(unit) >= 100 
+
 **************************************************************************************************************
 
 Table: Users
@@ -4652,7 +4694,15 @@ The mail of user 7 starts with a period.
 
 SELECT user_id, [name], mail 
 FROM Users 
-WHERE mail  LIKE '[a-zA-Z]%@leetcode.com' AND mail NOT LIKE '%[^a-zA-Z0-9_.-]%@leetcode.com'
+WHERE mail LIKE '[a-zA-Z]%@leetcode.com' AND mail NOT LIKE '%[^a-zA-Z0-9_.-]%@leetcode.com'
+
+nebo takto:
+SELECT user_id, name, mail
+FROM Users
+WHERE mail LIKE '%@leetcode.com'
+  AND mail LIKE '[A-Za-z]%'
+  AND mail NOT LIKE '%[^A-Za-z0-9._@-]%'
+  AND mail NOT LIKE '%@%@%';
 
 *********************************************************************************************************
 
